@@ -615,7 +615,7 @@ mod tests {
     }
     
     #[test]
-    fn tuple_variant() {
+    fn struct_variant() {
         #[derive(Debug, PartialEq, Deserialize)]
         #[serde(rename_all = "camelCase")]
         enum Suit {
