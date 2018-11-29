@@ -11,8 +11,10 @@ pub struct TupleAccess {
 
 impl TupleAccess {
     pub fn new<'a, R: 'a + Read>(de: &'a mut Deserializer<R>) -> Result<Self> {
-        let items = de.characters()?.split_whitespace().map(String::from).collect::<Vec<_>>().into_iter();
-        Ok(TupleAccess { items })
+        let items: Vec<String> = de.characters()?.split_whitespace()
+            .map(String::from)
+            .collect();
+        Ok(TupleAccess { items: items.into_iter() })
     }
 }
 

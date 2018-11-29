@@ -412,8 +412,8 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {
+        // Handled by UnitVariantAccess
         unimplemented!()
-        //de::Deserialize::deserialize(self.de)
     }
 
     fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
@@ -456,7 +456,7 @@ impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for UnitVariantAccess<'a, R> {
     where
         V: de::DeserializeSeed<'de>,
     {
-        let variant = try!(seed.deserialize(&mut *self.de));
+        let variant = seed.deserialize(&mut *self.de)?;
         Ok((variant, self))
     }
 }
