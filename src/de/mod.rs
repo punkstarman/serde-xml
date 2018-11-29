@@ -11,9 +11,11 @@ use super::error::{self, Error, Result};
 
 mod map;
 mod seq;
+mod tuple;
 
 use self::map::MapAccess;
 use self::seq::SeqAccess;
+use self::tuple::TupleAccess;
 
 pub fn from_reader<'de, R: Read, T: de::Deserialize<'de>>(reader: R) -> Result<T> {
     T::deserialize(&mut Deserializer::new_from_reader(reader)?)
@@ -66,8 +68,7 @@ impl<R: Read> Deserializer<R> {
     fn do_next(&mut self) -> Result<XmlEvent> {
         println!("Reading from {:p}", &self.reader);
         match self.reader.next().map_err(error::reader)? {
-            XmlEvent::ProcessingInstruction { .. }
-            | XmlEvent::Comment(_) => self.do_next(),
+            XmlEvent::ProcessingInstruction { .. } => self.do_next(),
             e => {
                 println!("  event {:?}", e);
                 Ok(e)
@@ -307,7 +308,7 @@ impl<'de, 'r, R: Read> de::Deserializer<'de> for &'r mut Deserializer<R> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        visitor.visit_seq(TupleAccess::new(self)?)
     }
 
     fn deserialize_tuple_struct<V>(
@@ -422,12 +423,11 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         seed.deserialize(self.de)
     }
 
-    fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
+    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        unimplemented!()
-        //de::Deserializer::deserialize_seq(self.de, visitor)
+        self.de.deserialize_tuple(len, visitor)
     }
 
     fn struct_variant<V>(self, _fields: &'static [&'static str], visitor: V) -> Result<V::Value>
@@ -696,7 +696,7 @@ mod tests {
             I(i64),
             F(f64),
             S(String),
-            KV(String, String),
+            Kv(String, String),
         }
         
         #[derive(Debug, PartialEq, Deserialize)]
@@ -706,7 +706,7 @@ mod tests {
         }
         
         let expected = Document {
-            content: Value::I(42),
+            content: Value::Kv("abc".to_string(), "123".to_string()),
         };
         
         let input = r#"
