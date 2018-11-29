@@ -158,11 +158,13 @@ impl<'de, 'r, R: Read> de::Deserializer<'de> for &'r mut Deserializer<R> {
         unimplemented!()
     }
 
-    fn deserialize_i64<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let s = self.characters()?;
+        let d: u8 = std::str::FromStr::from_str(&s).map_err(error::parse_int)?;
+        visitor.visit_u8(d)
     }
 
     serde_if_integer128! {
@@ -413,12 +415,11 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         //de::Deserialize::deserialize(self.de)
     }
 
-    fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value>
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
     where
         T: de::DeserializeSeed<'de>,
     {
-        unimplemented!()
-        //seed.deserialize(self.de)
+        seed.deserialize(self.de)
     }
 
     fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
@@ -648,6 +649,39 @@ mod tests {
             <document>
                 <content><trump><number>21</number></trump></content>
             </document>";
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn tuple_variant() {
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        enum Value {
+            I(i64),
+            F(f64),
+            S(String),
+        }
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Document {
+            content: Value,
+        }
+        
+        let expected = Document {
+            content: Value::I(42),
+        };
+        
+        let input = r#"
+            <document>
+                <content>
+                    <i>42</i>
+                </content>
+            </document>
+        "#;
         
         let actual: Document = from_str(input).unwrap();
         
