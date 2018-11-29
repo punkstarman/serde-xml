@@ -656,7 +656,7 @@ mod tests {
     }
     
     #[test]
-    fn tuple_variant() {
+    fn newtype_variant() {
         #[derive(Debug, PartialEq, Deserialize)]
         #[serde(rename_all = "camelCase")]
         enum Value {
@@ -679,6 +679,40 @@ mod tests {
             <document>
                 <content>
                     <i>42</i>
+                </content>
+            </document>
+        "#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn tuple_variant() {
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        enum Value {
+            I(i64),
+            F(f64),
+            S(String),
+            KV(String, String),
+        }
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Document {
+            content: Value,
+        }
+        
+        let expected = Document {
+            content: Value::I(42),
+        };
+        
+        let input = r#"
+            <document>
+                <content>
+                    <kv>abc 123</kv>
                 </content>
             </document>
         "#;
