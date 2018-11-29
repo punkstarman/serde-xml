@@ -11,9 +11,11 @@ use super::error::{self, Error, Result};
 
 mod map;
 mod seq;
+mod tuple;
 
 use self::map::MapAccess;
 use self::seq::SeqAccess;
+use self::tuple::TupleAccess;
 
 pub fn from_reader<'de, R: Read, T: de::Deserialize<'de>>(reader: R) -> Result<T> {
     T::deserialize(&mut Deserializer::new_from_reader(reader)?)
@@ -66,8 +68,7 @@ impl<R: Read> Deserializer<R> {
     fn do_next(&mut self) -> Result<XmlEvent> {
         println!("Reading from {:p}", &self.reader);
         match self.reader.next().map_err(error::reader)? {
-            XmlEvent::ProcessingInstruction { .. }
-            | XmlEvent::Comment(_) => self.do_next(),
+            XmlEvent::ProcessingInstruction { .. } => self.do_next(),
             e => {
                 println!("  event {:?}", e);
                 Ok(e)
@@ -158,11 +159,13 @@ impl<'de, 'r, R: Read> de::Deserializer<'de> for &'r mut Deserializer<R> {
         unimplemented!()
     }
 
-    fn deserialize_i64<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let s = self.characters()?;
+        let d: u8 = std::str::FromStr::from_str(&s).map_err(error::parse_int)?;
+        visitor.visit_u8(d)
     }
 
     serde_if_integer128! {
@@ -305,7 +308,7 @@ impl<'de, 'r, R: Read> de::Deserializer<'de> for &'r mut Deserializer<R> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        visitor.visit_seq(TupleAccess::new(self)?)
     }
 
     fn deserialize_tuple_struct<V>(
@@ -409,24 +412,22 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {
+        // Handled by UnitVariantAccess
         unimplemented!()
-        //de::Deserialize::deserialize(self.de)
     }
 
-    fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value>
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
     where
         T: de::DeserializeSeed<'de>,
     {
-        unimplemented!()
-        //seed.deserialize(self.de)
+        seed.deserialize(self.de)
     }
 
-    fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
+    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        unimplemented!()
-        //de::Deserializer::deserialize_seq(self.de, visitor)
+        self.de.deserialize_tuple(len, visitor)
     }
 
     fn struct_variant<V>(self, _fields: &'static [&'static str], visitor: V) -> Result<V::Value>
@@ -455,7 +456,7 @@ impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for UnitVariantAccess<'a, R> {
     where
         V: de::DeserializeSeed<'de>,
     {
-        let variant = try!(seed.deserialize(&mut *self.de));
+        let variant = seed.deserialize(&mut *self.de)?;
         Ok((variant, self))
     }
 }
@@ -648,6 +649,73 @@ mod tests {
             <document>
                 <content><trump><number>21</number></trump></content>
             </document>";
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn newtype_variant() {
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        enum Value {
+            I(i64),
+            F(f64),
+            S(String),
+        }
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Document {
+            content: Value,
+        }
+        
+        let expected = Document {
+            content: Value::I(42),
+        };
+        
+        let input = r#"
+            <document>
+                <content>
+                    <i>42</i>
+                </content>
+            </document>
+        "#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn tuple_variant() {
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        enum Value {
+            I(i64),
+            F(f64),
+            S(String),
+            Kv(String, String),
+        }
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Document {
+            content: Value,
+        }
+        
+        let expected = Document {
+            content: Value::Kv("abc".to_string(), "123".to_string()),
+        };
+        
+        let input = r#"
+            <document>
+                <content>
+                    <kv>abc 123</kv>
+                </content>
+            </document>
+        "#;
         
         let actual: Document = from_str(input).unwrap();
         
