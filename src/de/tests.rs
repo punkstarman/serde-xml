@@ -1,7 +1,24 @@
+extern crate env_logger;
+extern crate chrono;
+
+use std::sync::Once;
+
 use super::from_str;
+
+static BEFORE_ALL: Once = Once::new();
+
+fn setup() {
+    setup_logger();
+}
+
+fn setup_logger() {
+    BEFORE_ALL.call_once(env_logger::init)
+}
 
 #[test]
 fn one_element() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     struct Document {
         value: String,
@@ -18,6 +35,8 @@ fn one_element() {
 
 #[test]
 fn nested_elements() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     struct Document {
         inner: InnerElement,
@@ -44,6 +63,8 @@ fn nested_elements() {
 
 #[test]
 fn multiple_elements() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     struct Document {
         first: String,
@@ -68,6 +89,8 @@ fn multiple_elements() {
 
 #[test]
 fn sequence() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     struct Document {
         #[serde(rename = "item")]
@@ -92,6 +115,8 @@ fn sequence() {
 
 #[test]
 fn unit_variant() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     #[serde(rename_all = "camelCase")]
     enum ABC {
@@ -120,6 +145,8 @@ fn unit_variant() {
 
 #[test]
 fn struct_variant() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     #[serde(rename_all = "camelCase")]
     enum Suit {
@@ -160,6 +187,8 @@ fn struct_variant() {
 
 #[test]
 fn newtype_variant() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     #[serde(rename_all = "camelCase")]
     enum Value {
@@ -193,6 +222,8 @@ fn newtype_variant() {
 
 #[test]
 fn tuple_variant() {
+    setup();
+    
     #[derive(Debug, PartialEq, Deserialize)]
     #[serde(rename_all = "camelCase")]
     enum Value {

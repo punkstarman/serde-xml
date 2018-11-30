@@ -28,19 +28,19 @@ impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
     {
         if self.first {
             self.first = false;
-            println!("  found sequence tag {}", self.tag_name);
+            debug!("found sequence tag {}", self.tag_name);
             let v = seed.deserialize(&mut *self.de)?;
             self.de.end_tag(self.tag_name.clone())?;
-            println!("  end sequence tag {}", self.tag_name);
+            debug!("end sequence tag {}", self.tag_name);
             Ok(Some(v))
         } else {
             match self.de.peek()?.clone() {
                 XmlEvent::StartElement { ref name, .. } if name.local_name == self.tag_name => {
                     self.de.start_tag()?;
-                    println!("  found sequence tag {}", self.tag_name);
+                    debug!("found sequence tag {}", self.tag_name);
                     let v = seed.deserialize(&mut *self.de)?;
                     self.de.end_tag(self.tag_name.clone())?;
-                    println!("  end sequence tag {}", self.tag_name);
+                    debug!("end sequence tag {}", self.tag_name);
                     Ok(Some(v))
                 },
                 _ => Ok(None),

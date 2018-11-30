@@ -7,3 +7,8 @@ authors = ["William Bartlett <w.bartlett@treeptik.fr>"]
 serde = "^1.0.0"
 serde_derive = "^1.0.0"
 xml-rs = "^0.8.0"
+log = "^0.4.6"
+
+[dev-dependencies]
+chrono = "0.4.6"
+env_logger = "0.6.0"

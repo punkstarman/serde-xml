@@ -58,7 +58,7 @@ impl<R: Read> Deserializer<R> {
     }
     
     fn peek(&mut self) -> Result<&XmlEvent> {
-        println!("Peeking ...");
+        trace!("Peeking ...");
         match self.lookahead {
             None => { self.lookahead = Some(self.do_next()?); Ok(&self.lookahead.as_ref().unwrap()) },
             Some(ref e) => Ok(&e)
@@ -66,18 +66,18 @@ impl<R: Read> Deserializer<R> {
     }
     
     fn do_next(&mut self) -> Result<XmlEvent> {
-        println!("Reading from {:p}", &self.reader);
+        trace!("Reading from {:p}", &self.reader);
         match self.reader.next().map_err(error::reader)? {
             XmlEvent::ProcessingInstruction { .. } => self.do_next(),
             e => {
-                println!("  event {:?}", e);
+                debug!("event {:?}", e);
                 Ok(e)
             }
         }
     }
     
     fn next(&mut self) -> Result<XmlEvent> {
-        println!("Popping!");
+        trace!("Popping!");
         match self.lookahead.take() {
             Some(e) => Ok(e),
             None => self.do_next(),
@@ -110,9 +110,9 @@ impl<R: Read> Deserializer<R> {
     }
     
     fn characters(&mut self) -> Result<String> {
-        println!("looking for characters");
+        debug!("looking for characters");
         match self.next()? {
-            XmlEvent::Characters(s) => { println!("got {}", s); Ok(s)},
+            XmlEvent::Characters(s) => { debug!("got characters {}", s); Ok(s)},
             e => Err(error::with_message(format!("expecting characters but got {:?}", e))),
         }
     }
@@ -249,7 +249,6 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         V: Visitor<'de>,
     {
         let s = self.characters()?;
-        println!("  found characters {}", s);
         visitor.visit_string(s)
     }
 
@@ -340,7 +339,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        println!("Struct {}", name);
+        debug!("Struct {}", name);
         self.deserialize_map(visitor)
     }
 
@@ -360,7 +359,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
             XmlEvent::StartElement { .. } => {
                 let tag_name = self.start_tag()?;
                 self.tag_name = tag_name.clone();
-                println!("Variant {}", tag_name);
+                debug!("Variant {}", tag_name);
                 let v = visitor.visit_enum(VariantAccess::new(self))?;
                 self.end_tag(tag_name)?;
                 Ok(v)
