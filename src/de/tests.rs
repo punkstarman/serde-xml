@@ -1,18 +1,14 @@
 extern crate env_logger;
 extern crate chrono;
 
-use std::sync::Once;
-
 use super::from_str;
-
-static BEFORE_ALL: Once = Once::new();
 
 fn setup() {
     setup_logger();
 }
 
 fn setup_logger() {
-    BEFORE_ALL.call_once(env_logger::init)
+    let _ = env_logger::try_init();
 }
 
 #[test]
