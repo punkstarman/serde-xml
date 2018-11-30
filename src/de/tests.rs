@@ -67,7 +67,6 @@ fn multiple_elements() {
 }
 
 #[test]
-#[ignore]
 fn sequence() {
     #[derive(Debug, PartialEq, Deserialize)]
     struct Document {
@@ -81,11 +80,9 @@ fn sequence() {
     
     let input = r"
         <document>
-            <items>
-                <item>first</item>
-                <item>second</item>
-                <item>third</item>
-            </items>
+            <item>first</item>
+            <item>second</item>
+            <item>third</item>
         </document>";
     
     let actual: Document = from_str(input).unwrap();
