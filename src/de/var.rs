@@ -3,7 +3,8 @@ use std::io::Read;
 use serde::de::{
     Deserializer as SerdeDeserializer,
     IntoDeserializer,
-    Visitor};
+    //Visitor,
+};
 
 use super::Deserializer;
 use super::super::error::{self, Error, Result};
@@ -49,14 +50,14 @@ impl<'de, 'a, R: 'a + Read> serde::de::VariantAccess<'de> for VariantAccess<'a, 
 
     fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: serde::de::Visitor<'de>,
     {
         self.de.deserialize_tuple(len, visitor)
     }
 
     fn struct_variant<V>(self, _fields: &'static [&'static str], visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: serde::de::Visitor<'de>,
     {
         self.de.deserialize_map(visitor)
     }
@@ -101,14 +102,14 @@ impl<'de, 'a, R: 'a + Read> serde::de::VariantAccess<'de> for UnitVariantAccess<
 
     fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: serde::de::Visitor<'de>,
     {
         Err(error::with_message("expected unit variant".to_string()))
     }
 
     fn struct_variant<V>(self, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: serde::de::Visitor<'de>,
     {
         Err(error::with_message("expected unit variant".to_string()))
     }

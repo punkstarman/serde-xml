@@ -12,6 +12,10 @@ extern crate xml;
 #[macro_use]
 extern crate serde_derive;
 
+#[cfg(test)]
+#[macro_use]
+extern crate indoc;
+
 mod de;
 mod error;
 mod ser;

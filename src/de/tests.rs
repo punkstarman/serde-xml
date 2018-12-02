@@ -1,5 +1,4 @@
 extern crate env_logger;
-extern crate chrono;
 
 use super::from_str;
 

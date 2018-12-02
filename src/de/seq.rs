@@ -30,7 +30,7 @@ impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
             self.first = false;
             debug!("found sequence tag {}", self.tag_name);
             let v = seed.deserialize(&mut *self.de)?;
-            self.de.end_tag(self.tag_name.clone())?;
+            self.de.end_tag(&self.tag_name)?;
             debug!("end sequence tag {}", self.tag_name);
             Ok(Some(v))
         } else {
@@ -39,7 +39,7 @@ impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
                     self.de.start_tag()?;
                     debug!("found sequence tag {}", self.tag_name);
                     let v = seed.deserialize(&mut *self.de)?;
-                    self.de.end_tag(self.tag_name.clone())?;
+                    self.de.end_tag(&self.tag_name)?;
                     debug!("end sequence tag {}", self.tag_name);
                     Ok(Some(v))
                 },
