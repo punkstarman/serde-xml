@@ -32,3 +32,33 @@ fn one_element() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn nested_elements() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        inner: InnerElement,
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    struct InnerElement {
+        value: String,
+    }
+    
+    let input = Document { inner: InnerElement { value: "plain text".to_string() } };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <inner>
+            <value>plain text</value>
+          </inner>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}

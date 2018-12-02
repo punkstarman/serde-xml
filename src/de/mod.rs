@@ -354,7 +354,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
             
             let v = self.deserialize_map(visitor)?;
             
-            self.end_tag(&tag_name);
+            let _ = self.end_tag(&tag_name);
             self.end_document()?;
             Ok(v)
         } else {

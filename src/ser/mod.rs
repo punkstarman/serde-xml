@@ -33,6 +33,7 @@ impl<W: Write> Serializer<W> {
     pub fn new(writer: W) -> Self {
         Self::new_from_writer(EmitterConfig::new()
             .perform_indent(true)
+            .keep_element_names_stack(true)
             .create_writer(writer))
     }
     
@@ -71,7 +72,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Self;
-    type SerializeStruct = Self;
+    type SerializeStruct = StructSerializer<'ser, W>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok>
@@ -230,13 +231,14 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         name: &'static str,
         len: usize
     ) -> Result<Self::SerializeStruct> {
+        debug!("Struct {}", name);
         if self.root {
+            self.root = false;
             self.start_document()?;
             self.start_tag(name)?;
-            self.serialize_map(Some(len))?;
-            Ok(self)
+            Ok(StructSerializer { ser: self, root: true })
         } else {
-            self.serialize_map(Some(len))
+            Ok(StructSerializer { ser: self, root: false })
         }
     }
 
@@ -274,7 +276,12 @@ impl<'ser, W: Write> serde::ser::SerializeMap for &'ser mut Serializer<W> {
     }
 }
 
-impl<'ser, W: Write> serde::ser::SerializeStruct for &'ser mut Serializer<W> {
+pub struct StructSerializer<'ser, W: 'ser + Write> {
+    ser: &'ser mut Serializer<W>,
+    root: bool,
+}
+
+impl<'ser, W: Write> serde::ser::SerializeStruct for StructSerializer<'ser, W> {
     type Ok = ();
     type Error = Error;
     
@@ -282,14 +289,19 @@ impl<'ser, W: Write> serde::ser::SerializeStruct for &'ser mut Serializer<W> {
     where
         T: ?Sized + Serialize,
     {
-        self.start_tag(key)?;
-        value.serialize(&mut **self)?;
-        self.end_tag()?;
+        debug!("field {}", key);
+        self.ser.start_tag(key)?;
+        value.serialize(&mut *self.ser)?;
+        debug!("end field");
+        self.ser.end_tag()?;
         Ok(())
     }
     
     fn end(self) -> Result<()> {
-        self.end_tag()
+        if self.root {
+            self.ser.end_tag()?;
+        }
+        Ok(())
     }
 }
 
