@@ -200,3 +200,39 @@ fn struct_variant() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn newtype_variant() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(dead_code)]
+    enum Value {
+        I(i64),
+        F(f64),
+        S(String),
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Value,
+    }
+    
+    let input = Document {
+        content: Value::I(42),
+    };
+    
+    let expected = indoc!(r#"
+        <document>
+          <content>
+            <i>42</i>
+          </content>
+        </document>
+    "#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
