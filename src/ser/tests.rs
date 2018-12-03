@@ -90,3 +90,29 @@ fn multiple_elements() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn sequence() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    struct Document {
+        #[serde(rename = "item")]
+        items: Vec<String>,
+    }
+    
+    let input = Document {
+        items: vec!["first".to_string(), "second".to_string(), "third".to_string()],
+    };
+    
+    let expected = indoc!(r#"
+        <document>
+            <item>first</item>
+            <item>second</item>
+            <item>third</item>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
