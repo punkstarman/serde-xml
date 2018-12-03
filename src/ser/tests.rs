@@ -287,7 +287,7 @@ fn types_unit() {
     let expected = indoc!(r#"
         <?xml version="1.0" encoding="UTF-8"?>
         <document>
-        <content/>
+          <content />
         </document>"#);
     
     let actual = to_string(&input).unwrap();
