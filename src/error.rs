@@ -1,11 +1,12 @@
 use std::error;
 use std::fmt::{self, Display};
-//use std::io;
 use std::num::ParseIntError;
+use std::string::FromUtf8Error;
 use std::result;
 
 use xml::reader;
-//use xml::writer;
+use xml::writer;
+
 
 pub type Result<T> = result::Result<T, Error>;
 
@@ -16,7 +17,9 @@ pub struct Error(Box<ErrorImpl>);
 pub enum ErrorImpl {
     Message(String),
     Reader(reader::Error),
+    Writer(writer::Error),
     ParseIntError(ParseIntError),
+    FromUtf8Error(FromUtf8Error),
 }
 
 pub fn with_message(s: String) -> Error {
@@ -31,12 +34,22 @@ pub fn reader(err: reader::Error) -> Error {
     Error(Box::new(ErrorImpl::Reader(err)))
 }
 
+pub fn writer(err: writer::Error) -> Error {
+    Error(Box::new(ErrorImpl::Writer(err)))
+}
+
+pub fn from_utf8(err: FromUtf8Error) -> Error {
+    Error(Box::new(ErrorImpl::FromUtf8Error(err)))
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self.0 {
             ErrorImpl::Message(ref m) => write!(f, "{}", m),
             ErrorImpl::Reader(ref err) => write!(f, "{}", err),
+            ErrorImpl::Writer(ref err) => write!(f, "{}", err),
             ErrorImpl::ParseIntError(ref err) => write!(f, "{}", err),
+            ErrorImpl::FromUtf8Error(ref err) => write!(f, "{}", err),
         }
     }
 }

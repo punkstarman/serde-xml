@@ -30,19 +30,19 @@ where
 
 pub struct Deserializer<R: Read> {
     reader: EventReader<R>,
+    root: bool,
     lookahead: Option<XmlEvent>,
     tag_name: String,
 }
 
 impl<R: Read> Deserializer<R> {
     pub fn new(reader: EventReader<R>) -> Result<Self> {
-        let mut d = Deserializer {
+        let d = Deserializer {
             reader,
+            root: true,
             lookahead: None,
             tag_name: "".to_string(),
         };
-        d.start_document()?;
-        d.start_tag()?;
         Ok(d)
     }
     
@@ -91,7 +91,14 @@ impl<R: Read> Deserializer<R> {
     fn start_document(&mut self) -> Result<()> {
         match self.next()? {
             XmlEvent::StartDocument { .. } => Ok(()),
-            e => Err(error::with_message(format!("expected start document, but got {:?}", e)))
+            e => Err(error::with_message(format!("expected start document, but got {:?}", e))),
+        }
+    }
+    
+    fn end_document(&mut self) -> Result<()> {
+        match self.next()? {
+            XmlEvent::EndDocument { .. } => Ok(()),
+            e => Err(error::with_message(format!("expected end of document, but got {:?}", e))),
         }
     }
     
@@ -102,7 +109,7 @@ impl<R: Read> Deserializer<R> {
         }
     }
     
-    fn end_tag(&mut self, tag_name: String) -> Result<()> {
+    fn end_tag(&mut self, tag_name: &str) -> Result<()> {
         match self.next()? {
             XmlEvent::EndElement { ref name } if name.to_string() == tag_name => Ok(()),
             _ => Err(error::with_message("expecting end tag".to_string())),
@@ -340,7 +347,19 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         V: Visitor<'de>,
     {
         debug!("Struct {}", name);
-        self.deserialize_map(visitor)
+        if self.root {
+            self.root = false;
+            self.start_document()?;
+            let tag_name = self.start_tag()?;
+            
+            let v = self.deserialize_map(visitor)?;
+            
+            let _ = self.end_tag(&tag_name);
+            self.end_document()?;
+            Ok(v)
+        } else {
+            self.deserialize_map(visitor)
+        }
     }
 
     /// Parses an enum as a single key:value pair where the key identifies the
@@ -361,7 +380,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
                 self.tag_name = tag_name.clone();
                 debug!("Variant {}", tag_name);
                 let v = visitor.visit_enum(VariantAccess::new(self))?;
-                self.end_tag(tag_name)?;
+                self.end_tag(&tag_name)?;
                 Ok(v)
             },
             XmlEvent::Characters { .. } => visitor.visit_enum(UnitVariantAccess::new(self)),

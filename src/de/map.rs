@@ -37,7 +37,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
     
     fn next_value_seed<V: serde::de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
         let v = seed.deserialize(&mut *self.de)?;
-        self.de.end_tag(self.end_tag.take().unwrap()).ok();
+        self.de.end_tag(&self.end_tag.take().unwrap()).ok();
         Ok(v)
     }
 }

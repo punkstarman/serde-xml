@@ -1,14 +1,9 @@
-extern crate env_logger;
-extern crate chrono;
-
 use super::from_str;
+
+use ::tests::setup_logger;
 
 fn setup() {
     setup_logger();
-}
-
-fn setup_logger() {
-    let _ = env_logger::try_init();
 }
 
 #[test]

@@ -12,6 +12,13 @@ extern crate xml;
 #[macro_use]
 extern crate serde_derive;
 
+#[cfg(test)]
+#[macro_use]
+extern crate indoc;
+
+#[cfg(test)]
+extern crate env_logger;
+
 mod de;
 mod error;
 mod ser;
@@ -21,5 +28,4 @@ pub use error::{Error, Result};
 pub use ser::{to_string, Serializer};
 
 #[cfg(test)]
-mod tests {
-}
+mod tests;
