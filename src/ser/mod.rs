@@ -74,7 +74,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type SerializeSeq = SeqSeralizer<'ser, W>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
-    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = TupleVariantSerializer<'ser, W>;
     type SerializeMap = Self;
     type SerializeStruct = StructSerializer<'ser, W>;
     type SerializeStructVariant = StructVariantSerializer<'ser, W>;
@@ -220,6 +220,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	{
 		unimplemented!()
 	}
+    
     fn serialize_tuple_variant(
         self,
         name: &'static str,
@@ -228,7 +229,8 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         len: usize
     ) -> Result<Self::SerializeTupleVariant>
 	{
-		unimplemented!()
+		self.start_tag(variant)?;
+        Ok(TupleVariantSerializer::new(self))
 	}
     
     fn serialize_map(
@@ -341,7 +343,7 @@ pub struct StructVariantSerializer<'ser, W: 'ser + Write> {
 
 impl<'ser, W: 'ser + Write> StructVariantSerializer<'ser, W> {
     fn new(ser: &'ser mut Serializer<W>) -> Self {
-        StructVariantSerializer { ser }
+        Self { ser }
     }
 }
 
@@ -359,6 +361,40 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeStructVariant for StructVariant
         value.serialize(&mut *self.ser)?;
         debug!("end field");
         self.ser.end_tag()?;
+        Ok(())
+    }
+    
+    fn end(self) -> Result<()> {
+        self.ser.end_tag()?;
+        Ok(())
+    }
+}
+
+pub struct TupleVariantSerializer<'ser, W: 'ser + Write> {
+    ser: &'ser mut Serializer<W>,
+    first: bool,
+}
+
+impl<'ser, W: 'ser + Write> TupleVariantSerializer<'ser, W> {
+    fn new(ser: &'ser mut Serializer<W>) -> Self {
+        Self { ser, first: true }
+    }
+}
+
+impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleVariantSerializer<'ser, W> {
+    type Ok = ();
+    type Error = Error;
+    
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + Serialize,
+    {
+        if self.first {
+            self.first = false;
+        } else {
+            self.ser.characters(" ")?;
+        }
+        value.serialize(&mut *self.ser)?;
         Ok(())
     }
     
