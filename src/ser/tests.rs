@@ -150,3 +150,53 @@ fn unit_variant() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn struct_variant() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(dead_code)]
+    enum Suit {
+        CLUBS, DIAMONDS, HEARTS, SPADES,
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(dead_code)]
+    enum Rank {
+        ACE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, KNIGHT, QUEEN, KING
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(dead_code)]
+    enum Card {
+        Trump { number: u8 }, Fool, Suited { suit: Suit, rank: Rank },
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Card,
+    }
+    
+    let input = Document {
+        content: Card::Trump { number: 21 },
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>
+            <trump>
+              <number>21</number>
+            </trump>
+          </content>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
