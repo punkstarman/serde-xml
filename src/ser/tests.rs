@@ -1,11 +1,9 @@
 use super::to_string;
 
+use ::tests::setup_logger;
+
 fn setup() {
     setup_logger();
-}
-
-fn setup_logger() {
-    let _ = env_logger::try_init();
 }
 
 #[test]
