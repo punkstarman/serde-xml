@@ -225,12 +225,12 @@ fn newtype_variant() {
     };
     
     let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
         <document>
           <content>
             <i>42</i>
           </content>
-        </document>
-    "#);
+        </document>"#);
     
     let actual = to_string(&input).unwrap();
     

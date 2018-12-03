@@ -97,7 +97,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	}
     fn serialize_i64(self, v: i64) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.characters(&v.to_string())
 	}
     fn serialize_u8(self, v: u8) -> Result<Self::Ok>
 	{
@@ -189,7 +189,11 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     where
         T: Serialize
 	{
-		unimplemented!()
+        debug!("Newtype variant {}", variant);
+        self.start_tag(variant)?;
+        value.serialize(&mut *self)?;
+        self.end_tag()?;
+		Ok(())
 	}
     
     fn serialize_seq(
