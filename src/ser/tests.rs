@@ -68,6 +68,7 @@ fn multiple_elements() {
     setup();
     
     #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
     struct Document {
         first: String,
         second: String,
