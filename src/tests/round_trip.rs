@@ -208,3 +208,20 @@ fn tuple_variant() {
     
     round_trip(&object);
 }
+
+#[test]
+fn types_bool() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: bool,
+    }
+    
+    let object = Document {
+        content: true,
+    };
+    
+    round_trip(&object);
+}

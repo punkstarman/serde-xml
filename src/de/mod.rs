@@ -125,6 +125,15 @@ impl<R: Read> Deserializer<R> {
     }
 }
 
+macro_rules! deserialize_type {
+    ($deserialize:ident, $error:expr => $visit:ident) => {
+        fn $deserialize<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+            let value = self.characters()?.parse().map_err($error)?;
+            visitor.$visit(value)
+        }
+    }
+}
+
 impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> {
     type Error = Error;
     
@@ -138,110 +147,33 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         }
     }
 
-    fn deserialize_bool<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_i8<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_i16<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_i32<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        let s = self.characters()?;
-        let d: u8 = std::str::FromStr::from_str(&s).map_err(error::parse_int)?;
-        visitor.visit_u8(d)
-    }
+    deserialize_type!(deserialize_bool, error::parse_bool => visit_bool);
+    deserialize_type!(deserialize_i8, error::parse_int => visit_i8);
+    deserialize_type!(deserialize_i16, error::parse_int => visit_i16);
+    deserialize_type!(deserialize_i32, error::parse_int => visit_i32);
+    deserialize_type!(deserialize_i64, error::parse_int => visit_i64);
 
     serde_if_integer128! {
-        fn deserialize_i128<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
-        {
-            unimplemented!()
-        }
+        deserialize_type!(deserialize_i128, error::parse_int => visit_i128);
     }
 
-    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        let s = self.characters()?;
-        let d: u8 = std::str::FromStr::from_str(&s).map_err(error::parse_int)?;
-        visitor.visit_u8(d)
-    }
-
-    fn deserialize_u16<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_u32<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_u64<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
+    deserialize_type!(deserialize_u8, error::parse_int => visit_u8);
+    deserialize_type!(deserialize_u16, error::parse_int => visit_u16);
+    deserialize_type!(deserialize_u32, error::parse_int => visit_u32);
+    deserialize_type!(deserialize_u64, error::parse_int => visit_u64);
+    
     serde_if_integer128! {
-        fn deserialize_u128<V>(self, _visitor: V) -> Result<V::Value>
-        where
-            V: Visitor<'de>,
-        {
-            unimplemented!()
-        }
+        deserialize_type!(deserialize_u128, error::parse_int => visit_u128);
     }
 
-    fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value>
+    deserialize_type!(deserialize_f32, error::parse_float => visit_f32);
+    deserialize_type!(deserialize_f64, error::parse_float => visit_f64);
+
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
-    }
-
-    fn deserialize_f64<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-
-    fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
+        self.deserialize_string(visitor)
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>

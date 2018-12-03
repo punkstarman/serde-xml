@@ -246,3 +246,66 @@ fn tuple_variant() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn types_char() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: char,
+    }
+    
+    let expected = Document {
+        content: 'a',
+    };
+    
+    let input = r#"<document><content>a</content></document>"#;
+    
+    let actual: Document = from_str(input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn types_float() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: f64,
+    }
+    
+    let expected = Document {
+        content: 1.25f64,
+    };
+    
+    let input = r#"<document><content>1.25</content></document>"#;
+    
+    let actual: Document = from_str(input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn types_bool() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: bool,
+    }
+    
+    let expected = Document {
+        content: true,
+    };
+    
+    let input = r#"<document><content>true</content></document>"#;
+    
+    let actual: Document = from_str(input).unwrap();
+    
+    assert_eq!(expected, actual);
+}

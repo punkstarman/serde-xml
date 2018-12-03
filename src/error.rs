@@ -1,6 +1,7 @@
 use std::error;
 use std::fmt::{self, Display};
-use std::num::ParseIntError;
+use std::num::{ParseIntError, ParseFloatError};
+use std::str::ParseBoolError;
 use std::string::FromUtf8Error;
 use std::result;
 
@@ -19,6 +20,8 @@ pub enum ErrorImpl {
     Reader(reader::Error),
     Writer(writer::Error),
     ParseIntError(ParseIntError),
+    ParseFloatError(ParseFloatError),
+    ParseBoolError(ParseBoolError),
     FromUtf8Error(FromUtf8Error),
 }
 
@@ -28,6 +31,14 @@ pub fn with_message(s: String) -> Error {
 
 pub fn parse_int(err: ParseIntError) -> Error {
     Error(Box::new(ErrorImpl::ParseIntError(err)))
+}
+
+pub fn parse_float(err: ParseFloatError) -> Error {
+    Error(Box::new(ErrorImpl::ParseFloatError(err)))
+}
+
+pub fn parse_bool(err: ParseBoolError) -> Error {
+    Error(Box::new(ErrorImpl::ParseBoolError(err)))
 }
 
 pub fn reader(err: reader::Error) -> Error {
@@ -49,6 +60,8 @@ impl Display for Error {
             ErrorImpl::Reader(ref err) => write!(f, "{}", err),
             ErrorImpl::Writer(ref err) => write!(f, "{}", err),
             ErrorImpl::ParseIntError(ref err) => write!(f, "{}", err),
+            ErrorImpl::ParseFloatError(ref err) => write!(f, "{}", err),
+            ErrorImpl::ParseBoolError(ref err) => write!(f, "{}", err),
             ErrorImpl::FromUtf8Error(ref err) => write!(f, "{}", err),
         }
     }

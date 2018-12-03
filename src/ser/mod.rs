@@ -81,7 +81,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok>
     {
-        unimplemented!()
+        self.characters(&v.to_string())
     }
     fn serialize_i8(self, v: i8) -> Result<Self::Ok>
     {
@@ -125,7 +125,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	}
     fn serialize_char(self, v: char) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.characters(&v.to_string())
 	}
     fn serialize_str(self, v: &str) -> Result<Self::Ok>
 	{
@@ -278,14 +278,14 @@ impl<'ser, W: Write> serde::ser::SerializeMap for &'ser mut Serializer<W> {
     type Ok = ();
     type Error = Error;
     
-    fn serialize_key<T>(&mut self, key: &T) -> Result<()>
+    fn serialize_key<T>(&mut self, _key: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {
         unimplemented!()
     }
     
-    fn serialize_value<T>(&mut self, value: &T) -> Result<()>
+    fn serialize_value<T>(&mut self, _value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {
