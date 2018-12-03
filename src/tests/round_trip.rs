@@ -242,3 +242,37 @@ fn types_unit() {
     
     round_trip(&object);
 }
+
+#[test]
+fn option_absent() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Option<String>,
+    }
+    
+    let object = Document {
+        content: None,
+    };
+    
+    round_trip(&object);
+}
+
+#[test]
+fn option_present() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Option<String>,
+    }
+    
+    let object = Document {
+        content: Some("123".to_string()),
+    };
+    
+    round_trip(&object);
+}
