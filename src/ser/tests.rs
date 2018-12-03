@@ -269,3 +269,28 @@ fn tuple_variant() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn types_unit() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: (),
+    }
+    
+    let input = Document {
+        content: (),
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+        <content/>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
