@@ -85,15 +85,15 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     }
     fn serialize_i8(self, v: i8) -> Result<Self::Ok>
     {
-        unimplemented!()
+        self.serialize_i64(i64::from(v))
     }
     fn serialize_i16(self, v: i16) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.serialize_i64(i64::from(v))
 	}
     fn serialize_i32(self, v: i32) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.serialize_i64(i64::from(v))
 	}
     fn serialize_i64(self, v: i64) -> Result<Self::Ok>
 	{
@@ -101,27 +101,27 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	}
     fn serialize_u8(self, v: u8) -> Result<Self::Ok>
 	{
-		self.characters(&v.to_string())
+		self.serialize_u64(u64::from(v))
 	}
     fn serialize_u16(self, v: u16) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.serialize_u64(u64::from(v))
 	}
     fn serialize_u32(self, v: u32) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.serialize_u64(u64::from(v))
 	}
     fn serialize_u64(self, v: u64) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.characters(&v.to_string())
 	}
     fn serialize_f32(self, v: f32) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.serialize_f64(f64::from(v))
 	}
     fn serialize_f64(self, v: f64) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.characters(&v.to_string())
 	}
     fn serialize_char(self, v: char) -> Result<Self::Ok>
 	{
