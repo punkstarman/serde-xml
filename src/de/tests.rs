@@ -309,3 +309,24 @@ fn types_bool() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn types_unit() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: (),
+    }
+    
+    let expected = Document {
+        content: (),
+    };
+    
+    let input = r#"<document><content></content></document>"#;
+    
+    let actual: Document = from_str(input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
