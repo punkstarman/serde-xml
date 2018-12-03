@@ -96,6 +96,7 @@ fn sequence() {
     setup();
     
     #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
     struct Document {
         #[serde(rename = "item")]
         items: Vec<String>,
@@ -106,10 +107,43 @@ fn sequence() {
     };
     
     let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
         <document>
-            <item>first</item>
-            <item>second</item>
-            <item>third</item>
+          <item>first</item>
+          <item>second</item>
+          <item>third</item>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn unit_variant() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(dead_code)]
+    enum ABC {
+        A, B, C
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: ABC,
+    }
+    
+    let input = Document {
+        content: ABC::A,
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>a</content>
         </document>"#);
     
     let actual = to_string(&input).unwrap();

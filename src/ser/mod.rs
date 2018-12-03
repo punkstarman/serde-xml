@@ -23,11 +23,12 @@ pub struct Serializer<W>
 where W: Write {
     writer: EventWriter<W>,
     root: bool,
+    current_tag: String,
 }
 
 impl<W: Write> Serializer<W> {
     fn new_from_writer(writer: EventWriter<W>) -> Self {
-        Self { writer, root: true }
+        Self { writer, root: true, current_tag: "".to_string() }
     }
     
     pub fn new(writer: W) -> Self {
@@ -59,6 +60,10 @@ impl<W: Write> Serializer<W> {
     fn end_tag(&mut self) -> Result<()> {
         self.next(XmlEvent::end_element().into())
     }
+    
+    fn current_tag(&self) -> String {
+        self.current_tag.clone()
+    }
 }
 
 #[allow(unused_variables)]
@@ -66,7 +71,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = SeqSeralizer<'ser, W>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
@@ -153,6 +158,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	{
 		unimplemented!()
 	}
+    
     fn serialize_unit_variant(
         self,
         name: &'static str,
@@ -160,8 +166,9 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         variant: &'static str
     ) -> Result<Self::Ok>
 	{
-		unimplemented!()
+        self.serialize_str(variant)
 	}
+    
     fn serialize_newtype_struct<T: ?Sized>(
         self,
         name: &'static str,
@@ -184,13 +191,15 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	{
 		unimplemented!()
 	}
+    
     fn serialize_seq(
         self,
         len: Option<usize>
     ) -> Result<Self::SerializeSeq>
 	{
-		unimplemented!()
+		Ok(SeqSeralizer::new(self))
 	}
+    
     fn serialize_tuple(
         self,
         len: usize
@@ -198,6 +207,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	{
 		unimplemented!()
 	}
+    
     fn serialize_tuple_struct(
         self,
         name: &'static str,
@@ -298,6 +308,7 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeStruct for StructSerializer<'se
     where
         T: ?Sized + Serialize,
     {
+        self.ser.current_tag = key.to_string();
         debug!("field {}", key);
         self.ser.start_tag(key)?;
         value.serialize(&mut *self.ser)?;
@@ -310,6 +321,42 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeStruct for StructSerializer<'se
         if self.root {
             self.ser.end_tag()?;
         }
+        Ok(())
+    }
+}
+
+pub struct SeqSeralizer<'ser, W: 'ser + Write> {
+    ser: &'ser mut Serializer<W>,
+    tag_name: String,
+    first: bool,
+}
+
+impl<'ser, W: 'ser + Write> SeqSeralizer<'ser, W> {
+    fn new(ser: &'ser mut Serializer<W>) -> Self {
+        let tag_name = ser.current_tag();
+        SeqSeralizer { ser, tag_name, first: true }
+    }
+}
+
+impl<'ser, W: 'ser + Write> serde::ser::SerializeSeq for SeqSeralizer<'ser, W> {
+    type Ok = ();
+    type Error = Error;
+    
+    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + Serialize,
+    {
+        if self.first {
+            self.first = false;
+        } else {
+            self.ser.end_tag()?;
+            self.ser.start_tag(&self.tag_name)?;
+        }
+        value.serialize(&mut *self.ser)?;
+        Ok(())
+    }
+    
+    fn end(self) -> Result<()> {
         Ok(())
     }
 }
