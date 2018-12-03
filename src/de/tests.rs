@@ -1,5 +1,3 @@
-extern crate env_logger;
-
 use super::from_str;
 
 fn setup() {
