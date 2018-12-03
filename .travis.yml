@@ -5,8 +5,19 @@ matrix:
   - rust: stable
   - rust: beta
   - rust: nightly
-  - rust: 1.21.0
 
-script:
-- cargo build
-- cargo test
+stages:
+- info
+- build
+- test
+
+jobs:
+  include:
+  - stage: info
+    script: rustc --version && cargo --version
+    
+  - stage: build
+    script: cargo build
+    
+  - stage: test
+    script: cargo test
