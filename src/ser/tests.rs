@@ -294,3 +294,53 @@ fn types_unit() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn option_absent() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Option<String>,
+    }
+    
+    let input = Document {
+        content: None,
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content />
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn option_present() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Option<String>,
+    }
+    
+    let input = Document {
+        content: Some("123".to_string()),
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>123</content>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
