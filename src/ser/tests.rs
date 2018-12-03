@@ -62,3 +62,30 @@ fn nested_elements() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn multiple_elements() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    struct Document {
+        first: String,
+        second: String,
+    }
+    
+    let input = Document {
+        first: "plain text".to_string(),
+        second: "more text".to_string(),
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <first>plain text</first>
+          <second>more text</second>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}

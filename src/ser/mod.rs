@@ -33,7 +33,6 @@ impl<W: Write> Serializer<W> {
     pub fn new(writer: W) -> Self {
         Self::new_from_writer(EmitterConfig::new()
             .perform_indent(true)
-            .keep_element_names_stack(true)
             .create_writer(writer))
     }
     
@@ -236,9 +235,9 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
             self.root = false;
             self.start_document()?;
             self.start_tag(name)?;
-            Ok(StructSerializer { ser: self, root: true })
+            Ok(StructSerializer::new_root(self))
         } else {
-            Ok(StructSerializer { ser: self, root: false })
+            Ok(StructSerializer::new(self))
         }
     }
 
@@ -281,7 +280,17 @@ pub struct StructSerializer<'ser, W: 'ser + Write> {
     root: bool,
 }
 
-impl<'ser, W: Write> serde::ser::SerializeStruct for StructSerializer<'ser, W> {
+impl<'ser, W: 'ser + Write> StructSerializer<'ser, W> {
+    fn new(ser: &'ser mut Serializer<W>) -> Self {
+        StructSerializer { ser, root: false }
+    }
+    
+    fn new_root(ser: &'ser mut Serializer<W>) -> Self {
+        StructSerializer { ser, root: true }
+    }
+}
+
+impl<'ser, W: 'ser + Write> serde::ser::SerializeStruct for StructSerializer<'ser, W> {
     type Ok = ();
     type Error = Error;
     
