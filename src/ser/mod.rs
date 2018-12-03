@@ -149,7 +149,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     }
     fn serialize_unit(self) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		Ok(())
 	}
     fn serialize_unit_struct(
         self,

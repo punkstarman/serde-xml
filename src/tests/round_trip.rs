@@ -225,3 +225,20 @@ fn types_bool() {
     
     round_trip(&object);
 }
+
+#[test]
+fn types_unit() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: (),
+    }
+    
+    let object = Document {
+        content: (),
+    };
+    
+    round_trip(&object);
+}
