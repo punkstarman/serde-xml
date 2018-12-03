@@ -296,9 +296,6 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         }
     }
 
-    /// Parses an enum as a single key:value pair where the key identifies the
-    /// variant and the value gives the content. A String will also parse correctly
-    /// to a unit enum value.
     fn deserialize_enum<V>(
         self,
         _name: &'static str,
