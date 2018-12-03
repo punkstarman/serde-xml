@@ -236,3 +236,40 @@ fn newtype_variant() {
     
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn tuple_variant() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    #[allow(dead_code)]
+    enum Value {
+        I(i64),
+        F(f64),
+        S(String),
+        Kv(String, String),
+    }
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Value,
+    }
+    
+    let input = Document {
+        content: Value::Kv("abc".to_string(), "123".to_string()),
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>
+            <kv>abc 123</kv>
+          </content>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
