@@ -1,21 +1,16 @@
 language: rust
 
-matrix:
-  include:
-  - rust: stable
-  - rust: beta
-  - rust: nightly
+rust:
+- stable
+- beta
+- nightly
 
 stages:
-- info
 - build
 - test
 
 jobs:
   include:
-  - stage: info
-    script: rustc --version && cargo --version
-    
   - stage: build
     script: cargo build
     
