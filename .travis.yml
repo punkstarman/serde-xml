@@ -5,14 +5,9 @@ rust:
 - beta
 - nightly
 
-stages:
-- build
-- test
+cache: cargo
 
-jobs:
-  include:
-  - stage: build
-    script: cargo build
-    
-  - stage: test
-    script: cargo test
+matrix:
+  allow_failures:
+  - rust: nightly
+  fast_finish: true
