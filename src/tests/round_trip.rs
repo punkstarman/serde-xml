@@ -1,11 +1,11 @@
 use std::fmt::Debug;
 
-use serde::{Serialize, Deserialize};
+pub use serde::{Serialize, Deserialize};
 
-use ::ser::to_string;
-use ::de::from_str;
+pub use ::ser::to_string;
+pub use ::de::from_str;
 
-use super::setup_logger;
+pub use super::setup_logger;
 
 fn setup() {
     setup_logger();
@@ -243,9 +243,8 @@ fn types_unit() {
     round_trip(&object);
 }
 
-#[test]
-fn option_absent() {
-    setup();
+mod option {
+    use super::*;
     
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     #[serde(rename = "document", rename_all = "kebab-case")]
@@ -253,26 +252,31 @@ fn option_absent() {
         content: Option<String>,
     }
     
-    let object = Document {
-        content: None,
-    };
-    
-    round_trip(&object);
-}
+    #[test]
+    fn absent() {
+        setup();
+        
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            content: Option<String>,
+        }
+        
+        let object = Document {
+            content: None,
+        };
+        
+        round_trip(&object);
+    }
 
-#[test]
-fn option_present() {
-    setup();
-    
-    #[derive(Debug, PartialEq, Serialize, Deserialize)]
-    #[serde(rename = "document", rename_all = "kebab-case")]
-    struct Document {
-        content: Option<String>,
+    #[test]
+    fn present() {
+        setup();
+        
+        let object = Document {
+            content: Some("123".to_string()),
+        };
+        
+        round_trip(&object);
     }
-    
-    let object = Document {
-        content: Some("123".to_string()),
-    };
-    
-    round_trip(&object);
 }

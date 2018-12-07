@@ -1,6 +1,6 @@
-use super::to_string;
+pub use super::to_string;
 
-use ::tests::setup_logger;
+pub use ::tests::setup_logger;
 
 fn setup() {
     setup_logger();
@@ -295,52 +295,51 @@ fn types_unit() {
     assert_eq!(expected, actual);
 }
 
-#[test]
-fn option_absent() {
-    setup();
+mod option {
+    use super::*;
     
     #[derive(Debug, PartialEq, Serialize)]
     #[serde(rename = "document", rename_all = "kebab-case")]
     struct Document {
         content: Option<String>,
     }
-    
-    let input = Document {
-        content: None,
-    };
-    
-    let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
-        <document>
-          <content />
-        </document>"#);
-    
-    let actual = to_string(&input).unwrap();
-    
-    assert_eq!(expected, actual);
-}
 
-#[test]
-fn option_present() {
-    setup();
-    
-    #[derive(Debug, PartialEq, Serialize)]
-    #[serde(rename = "document", rename_all = "kebab-case")]
-    struct Document {
-        content: Option<String>,
+    #[test]
+    fn absent() {
+        setup();
+                
+        let input = Document {
+            content: None,
+        };
+        
+        let expected = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content />
+            </document>"#);
+        
+        let actual = to_string(&input).unwrap();
+        
+        assert_eq!(expected, actual);
     }
-    
-    let input = Document {
-        content: Some("123".to_string()),
-    };
-    
-    let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
-        <document>
-          <content>123</content>
-        </document>"#);
-    
-    let actual = to_string(&input).unwrap();
-    
-    assert_eq!(expected, actual);
+
+    #[test]
+    fn present() {
+        setup();
+        
+        let input = Document {
+            content: Some("123".to_string()),
+        };
+        
+        let expected = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content>123</content>
+            </document>"#);
+        
+        let actual = to_string(&input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+
 }

@@ -1,6 +1,6 @@
-use super::from_str;
+pub use super::from_str;
 
-use ::tests::setup_logger;
+pub use ::tests::setup_logger;
 
 fn setup() {
     setup_logger();
@@ -331,9 +331,8 @@ fn types_unit() {
     assert_eq!(expected, actual);
 }
 
-#[test]
-fn option_empty() {
-    setup();
+mod option {
+    use super::*;
     
     #[derive(Debug, PartialEq, Deserialize)]
     #[serde(rename_all = "kebab-case")]
@@ -341,55 +340,54 @@ fn option_empty() {
         content: Option<String>,
     }
     
-    let expected = Document {
-        content: None,
-    };
-    
-    let input = r#"<document><content></content></document>"#;
-    
-    let actual: Document = from_str(input).unwrap();
-    
-    assert_eq!(expected, actual);
-}
+    #[test]
+    fn empty() {
+        setup();
+        
+        let expected = Document {
+            content: None,
+        };
+        
+        let input = r#"<document><content></content></document>"#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
 
-#[test]
-fn option_absent() {
-    setup();
-    
-    #[derive(Debug, PartialEq, Deserialize)]
-    #[serde(rename_all = "kebab-case")]
-    struct Document {
-        content: Option<String>,
+    #[test]
+    fn absent() {
+        setup();
+        
+        let expected = Document {
+            content: None,
+        };
+        
+        let input = r#"<document></document>"#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
     }
-    
-    let expected = Document {
-        content: None,
-    };
-    
-    let input = r#"<document></document>"#;
-    
-    let actual: Document = from_str(input).unwrap();
-    
-    assert_eq!(expected, actual);
-}
 
-#[test]
-fn option_present() {
-    setup();
-    
-    #[derive(Debug, PartialEq, Deserialize)]
-    #[serde(rename_all = "kebab-case")]
-    struct Document {
-        content: Option<String>,
+    #[test]
+    fn present() {
+        setup();
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename_all = "kebab-case")]
+        struct Document {
+            content: Option<String>,
+        }
+        
+        let expected = Document {
+            content: Some("abc".to_string()),
+        };
+        
+        let input = r#"<document><content>abc</content></document>"#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
     }
-    
-    let expected = Document {
-        content: Some("abc".to_string()),
-    };
-    
-    let input = r#"<document><content>abc</content></document>"#;
-    
-    let actual: Document = from_str(input).unwrap();
-    
-    assert_eq!(expected, actual);
 }
