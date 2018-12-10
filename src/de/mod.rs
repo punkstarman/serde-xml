@@ -229,7 +229,6 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         self.deserialize_unit(visitor)
     }
 
-    /// Parses a newtype struct as the underlying value.
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,

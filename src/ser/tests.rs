@@ -271,6 +271,34 @@ fn tuple_variant() {
 }
 
 #[test]
+fn tuple() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: (i32, f64, String),
+    }
+    
+    let input = Document {
+        content: (123i32, 1.23f64, "abc".to_string()),
+    };
+    
+    let expected = r#"
+        <document>
+            <content>
+                123 1.23
+                abc
+            </content>
+        </document>
+    "#;
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
 fn types_unit() {
     setup();
     
