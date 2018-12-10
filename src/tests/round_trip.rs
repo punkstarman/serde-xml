@@ -227,6 +227,23 @@ fn types_bool() {
 }
 
 #[test]
+fn tuple() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: (i32, f64, String),
+    }
+    
+    let object = Document {
+        content: (123i32, 1.23f64, "abc".to_string()),
+    };
+    
+    round_trip(&object);
+}
+
+#[test]
 fn types_unit() {
     setup();
     
