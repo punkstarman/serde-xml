@@ -72,9 +72,9 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type Error = Error;
 
     type SerializeSeq = SeqSeralizer<'ser, W>;
-    type SerializeTuple = TupleVariantSerializer<'ser, W>;
+    type SerializeTuple = TupleSerializer<'ser, W>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
-    type SerializeTupleVariant = TupleVariantSerializer<'ser, W>;
+    type SerializeTupleVariant = TupleSerializer<'ser, W>;
     type SerializeMap = Self;
     type SerializeStruct = StructSerializer<'ser, W>;
     type SerializeStructVariant = StructVariantSerializer<'ser, W>;
@@ -209,7 +209,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         len: usize
     ) -> Result<Self::SerializeTuple>
 	{
-		Ok(TupleVariantSerializer::new(self))
+		Ok(TupleSerializer::new(self))
 	}
     
     fn serialize_tuple_struct(
@@ -230,7 +230,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     ) -> Result<Self::SerializeTupleVariant>
 	{
 		self.start_tag(variant)?;
-        Ok(TupleVariantSerializer::new(self))
+        Ok(TupleSerializer::new(self))
 	}
     
     fn serialize_map(
@@ -370,22 +370,17 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeStructVariant for StructVariant
     }
 }
 
-pub struct TupleVariantSerializer<'ser, W: 'ser + Write> {
+pub struct TupleSerializer<'ser, W: 'ser + Write> {
     ser: &'ser mut Serializer<W>,
     first: bool,
 }
 
-impl<'ser, W: 'ser + Write> TupleVariantSerializer<'ser, W> {
+impl<'ser, W: 'ser + Write> TupleSerializer<'ser, W> {
     fn new(ser: &'ser mut Serializer<W>) -> Self {
         Self { ser, first: true }
     }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleVariantSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
     
-    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
+    fn serialize_item<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {
@@ -396,6 +391,18 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleVariantSe
         }
         value.serialize(&mut *self.ser)?;
         Ok(())
+    }
+}
+
+impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleSerializer<'ser, W> {
+    type Ok = ();
+    type Error = Error;
+    
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + Serialize,
+    {
+        self.serialize_item(value)
     }
     
     fn end(self) -> Result<()> {
@@ -404,7 +411,7 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleVariantSe
     }
 }
 
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTuple for TupleVariantSerializer<'ser, W> {
+impl<'ser, W: 'ser + Write> serde::ser::SerializeTuple for TupleSerializer<'ser, W> {
     type Ok = ();
     type Error = Error;
     
@@ -412,13 +419,7 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeTuple for TupleVariantSerialize
     where
         T: ?Sized + Serialize,
     {
-        if self.first {
-            self.first = false;
-        } else {
-            self.ser.characters(" ")?;
-        }
-        value.serialize(&mut *self.ser)?;
-        Ok(())
+        self.serialize_item(value)
     }
     
     fn end(self) -> Result<()> {
