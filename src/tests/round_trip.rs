@@ -231,7 +231,7 @@ fn tuple() {
     setup();
     
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
-    #[serde(rename_all = "kebab-case")]
+    #[serde(rename = "document", rename_all = "kebab-case")]
     struct Document {
         content: (i32, f64, String),
     }

@@ -72,7 +72,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type Error = Error;
 
     type SerializeSeq = SeqSeralizer<'ser, W>;
-    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = TupleVariantSerializer<'ser, W>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = TupleVariantSerializer<'ser, W>;
     type SerializeMap = Self;
@@ -209,7 +209,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         len: usize
     ) -> Result<Self::SerializeTuple>
 	{
-		unimplemented!()
+		Ok(TupleVariantSerializer::new(self))
 	}
     
     fn serialize_tuple_struct(
@@ -400,6 +400,28 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleVariantSe
     
     fn end(self) -> Result<()> {
         self.ser.end_tag()?;
+        Ok(())
+    }
+}
+
+impl<'ser, W: 'ser + Write> serde::ser::SerializeTuple for TupleVariantSerializer<'ser, W> {
+    type Ok = ();
+    type Error = Error;
+    
+    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + Serialize,
+    {
+        if self.first {
+            self.first = false;
+        } else {
+            self.ser.characters(" ")?;
+        }
+        value.serialize(&mut *self.ser)?;
+        Ok(())
+    }
+    
+    fn end(self) -> Result<()> {
         Ok(())
     }
 }
