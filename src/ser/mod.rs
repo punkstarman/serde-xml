@@ -156,7 +156,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         name: &'static str
     ) -> Result<Self::Ok>
 	{
-		unimplemented!()
+		self.serialize_unit()
 	}
     
     fn serialize_unit_variant(
