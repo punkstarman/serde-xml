@@ -7,13 +7,13 @@ use super::super::error::{Error, Result};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
-    tag_name: String,
+    tag_name: Option<String>,
     first: bool,
 }
 
 impl<'a, R: 'a + Read> SeqAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Result<Self> {
-        let tag_name = de.current_tag()?;
+        let tag_name = de.current_tag();
         Ok(SeqAccess { de, tag_name, first: true })
     }
 }
@@ -30,9 +30,12 @@ impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
             self.first = false;
             seed.deserialize(&mut *self.de).map(Some)
         } else {
-            self.de.end_tag(&self.tag_name)?;
-            match self.de.peek()?.clone() {
-                XmlEvent::StartElement { ref name, .. } if name.local_name == self.tag_name => {
+            if let Some(ref t) = self.tag_name {
+                self.de.end_tag(&t)?;
+            }
+            
+            match (self.de.peek()?.clone(), self.tag_name.as_ref()) {
+                (XmlEvent::StartElement { ref name, .. }, Some(t)) if &name.local_name == t => {
                     self.de.start_tag()?;
                     let v = seed.deserialize(&mut *self.de)?;
                     Ok(Some(v))
