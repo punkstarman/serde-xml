@@ -260,6 +260,27 @@ fn types_unit() {
     round_trip(&object);
 }
 
+#[test]
+fn unit_struct() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Value;
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Value,
+    }
+    
+    let object = Document {
+        content: Value,
+    };
+    
+    round_trip(&object);
+}
+
 mod option {
     use super::*;
     

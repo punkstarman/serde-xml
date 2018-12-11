@@ -320,6 +320,35 @@ fn types_unit() {
     assert_eq!(expected, actual);
 }
 
+#[test]
+fn unit_struct() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Value;
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Value,
+    }
+    
+    let input = Document {
+        content: Value,
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content />
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
 mod option {
     use super::*;
     
