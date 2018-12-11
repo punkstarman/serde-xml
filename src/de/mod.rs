@@ -233,8 +233,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
-        //visitor.visit_newtype_struct(self)
+        visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
