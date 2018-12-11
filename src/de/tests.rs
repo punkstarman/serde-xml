@@ -384,6 +384,31 @@ fn unit_struct() {
     assert_eq!(expected, actual);
 }
 
+#[test]
+fn newtype_struct() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Value(String);
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: Value,
+    }
+    
+    let expected = Document {
+        content: Value("abc".to_string()),
+    };
+    
+    let input = r#"<document><content>abc</content></document>"#;
+    
+    let actual: Document = from_str(input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
 mod option {
     use super::*;
     
