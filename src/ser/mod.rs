@@ -194,7 +194,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     where
         T: Serialize
 	{
-		unimplemented!()
+		value.serialize(self)
 	}
     
     fn serialize_newtype_variant<T: ?Sized>(
