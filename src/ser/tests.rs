@@ -95,18 +95,24 @@ fn map() {
     
     #[derive(Debug, PartialEq, Serialize)]
     #[serde(rename = "document", rename_all = "kebab-case")]
-    struct Document(HashMap<String, String>);
+    struct Document {
+        content: HashMap<String, String>
+    };
     
-    let input = Document([
-        ("first.key".to_string(), "plain text".to_string()),
-        ("second-key".to_string(), "more text".to_string()),
-        ].iter().cloned().collect());
+    let input = Document {
+        content: [
+            ("first.key".to_string(), "plain text".to_string()),
+            ("second-key".to_string(), "more text".to_string()),
+        ].iter().cloned().collect(),
+    };
     
     let expected = indoc!(r#"
         <?xml version="1.0" encoding="UTF-8"?>
         <document>
-          <first.key>plain text</first.key>
-          <second-key>more text</second-key>
+          <content>
+            <first.key>plain text</first.key>
+            <second-key>more text</second-key>
+          </content>
         </document>"#);
     
     let actual = to_string(&input).unwrap();
