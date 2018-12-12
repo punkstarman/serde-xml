@@ -1,3 +1,5 @@
+mod plain;
+
 use std::io::Write;
 
 use serde::ser::Serialize;
@@ -5,6 +7,8 @@ use serde::ser::Serialize;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 use super::error::{self, Result, Error};
+
+use self::plain::to_plain_string;
 
 pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
     let mut writer = Vec::with_capacity(128);
@@ -75,7 +79,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type SerializeTuple = TupleSerializer<'ser, W>;
     type SerializeTupleStruct = TupleSerializer<'ser, W>;
     type SerializeTupleVariant = TupleSerializer<'ser, W>;
-    type SerializeMap = Self;
+    type SerializeMap = MapSerializer<'ser, W>;
     type SerializeStruct = StructSerializer<'ser, W>;
     type SerializeStructVariant = StructVariantSerializer<'ser, W>;
 
@@ -194,7 +198,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     where
         T: Serialize
 	{
-		value.serialize(self)
+        value.serialize(self)
 	}
     
     fn serialize_newtype_variant<T: ?Sized>(
@@ -256,7 +260,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         len: Option<usize>
     ) -> Result<Self::SerializeMap>
 	{
-		Ok(self)
+		Ok(MapSerializer::new(self))
 	}
     
     fn serialize_struct(
@@ -292,26 +296,39 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     }
 }
 
-impl<'ser, W: Write> serde::ser::SerializeMap for &'ser mut Serializer<W> {
+pub struct MapSerializer<'ser, W: 'ser + Write> {
+    ser: &'ser mut Serializer<W>,
+}
+
+impl<'ser, W: 'ser + Write> MapSerializer<'ser, W> {
+    fn new(ser: &'ser mut Serializer<W>) -> Self {
+        MapSerializer { ser }
+    }
+}
+
+impl<'ser, W: Write> serde::ser::SerializeMap for MapSerializer<'ser, W> {
     type Ok = ();
     type Error = Error;
     
-    fn serialize_key<T>(&mut self, _key: &T) -> Result<()>
+    fn serialize_key<T>(&mut self, key: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {
-        unimplemented!()
+        self.ser.start_tag(&to_plain_string(key)?)?;
+        Ok(())
     }
     
-    fn serialize_value<T>(&mut self, _value: &T) -> Result<()>
+    fn serialize_value<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {
-        unimplemented!()
+        value.serialize(&mut *self.ser)?;
+        self.ser.end_tag()?;
+        Ok(())
     }
     
     fn end(self) -> Result<()> {
-        unimplemented!()
+        Ok(())
     }
 }
 

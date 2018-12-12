@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub use super::to_string;
 
 pub use ::tests::setup_logger;
@@ -85,6 +87,46 @@ fn multiple_elements() {
     let actual = to_string(&input).unwrap();
     
     assert_eq!(expected, actual);
+}
+
+#[test]
+fn map() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: HashMap<String, String>
+    };
+    
+    let input = Document {
+        content: [
+            ("second-key".to_string(), "more text".to_string()),
+            ("first.key".to_string(), "plain text".to_string()),
+        ].iter().cloned().collect(),
+    };
+    
+    let expected1 = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>
+            <first.key>plain text</first.key>
+            <second-key>more text</second-key>
+          </content>
+        </document>"#);
+        
+    let expected2 = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>
+            <second-key>more text</second-key>
+            <first.key>plain text</first.key>
+          </content>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert!(vec![expected1.to_string(), expected2.to_string()].contains(&actual));
 }
 
 #[test]

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 
 pub use serde::{Serialize, Deserialize};
@@ -73,7 +74,27 @@ fn multiple_elements() {
         second: "more text".to_string(),
     };
     
-    round_trip(&object)
+    round_trip(&object);
+}
+
+#[test]
+fn map() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: HashMap<String, String>
+    };
+    
+    let object = Document {
+        content: [
+            ("first.key".to_string(), "plain text".to_string()),
+            ("second-key".to_string(), "more text".to_string()),
+        ].iter().cloned().collect()
+    };
+
+    round_trip(&object);
 }
 
 #[test]
