@@ -231,23 +231,6 @@ fn tuple_struct() {
 }
 
 #[test]
-fn types_bool() {
-    setup();
-    
-    #[derive(Debug, PartialEq, Serialize, Deserialize)]
-    #[serde(rename_all = "kebab-case")]
-    struct Document {
-        content: bool,
-    }
-    
-    let object = Document {
-        content: true,
-    };
-    
-    round_trip(&object);
-}
-
-#[test]
 fn tuple() {
     setup();
     
@@ -259,6 +242,23 @@ fn tuple() {
     
     let object = Document {
         content: (123i32, 1.23f64, "abc".to_string()),
+    };
+    
+    round_trip(&object);
+}
+
+#[test]
+fn types_bool() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: bool,
+    }
+    
+    let object = Document {
+        content: true,
     };
     
     round_trip(&object);

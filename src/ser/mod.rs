@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use serde::ser::{Impossible, Serialize};
+use serde::ser::Serialize;
 
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
