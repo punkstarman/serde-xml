@@ -26,7 +26,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
             XmlEvent::EndElement { .. } | XmlEvent::EndDocument => Ok(None),
             XmlEvent::StartElement { .. } => {
                 let tag_name = self.de.start_tag()?;
-                self.de.tag_name = Some(tag_name.clone());
+                self.de.tag_name = tag_name.clone();
                 debug!("found subtag {}", tag_name);
                 self.end_tag = Some(tag_name.clone());
                 seed.deserialize(tag_name.into_deserializer()).map(Some)

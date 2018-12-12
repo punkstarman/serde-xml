@@ -12,14 +12,11 @@ use super::super::error::{self, Error, Result};
 
 pub struct VariantAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
-    tag_name: String,
 }
 
 impl<'a, R: 'a + Read> VariantAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>) -> Result<Self> {
-        let tag_name = de.current_tag()
-            .ok_or(error::with_message("expected current tag".to_string()))?;
-        Ok(VariantAccess { de, tag_name })
+    pub fn new(de: &'a mut Deserializer<R>) -> Self {
+        VariantAccess { de: de }
     }
 }
 
@@ -31,7 +28,7 @@ impl<'de, 'a, R: 'a + Read> serde::de::EnumAccess<'de> for VariantAccess<'a, R> 
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let v = seed.deserialize(self.tag_name.clone().into_deserializer())?;
+        let v = seed.deserialize(self.de.current_tag()?.into_deserializer())?;
         Ok((v, self))
     }
 }

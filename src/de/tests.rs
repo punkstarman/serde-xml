@@ -248,37 +248,6 @@ fn tuple_variant() {
 }
 
 #[test]
-fn tuple_struct() {
-    setup();
-    
-    #[derive(Debug, PartialEq, Deserialize)]
-    #[serde(rename_all = "camelCase")]
-    struct Value(String, String);
-    
-    #[derive(Debug, PartialEq, Deserialize)]
-    #[serde(rename_all = "camelCase")]
-    struct Document {
-        content: Value,
-    }
-    
-    let expected = Document {
-        content: Value("abc".to_string(), "123".to_string()),
-    };
-    
-    let input = r#"
-        <document>
-            <content>
-                abc 123
-            </content>
-        </document>
-    "#;
-    
-    let actual: Document = from_str(input).unwrap();
-    
-    assert_eq!(expected, actual);
-}
-
-#[test]
 fn tuple() {
     setup();
     
