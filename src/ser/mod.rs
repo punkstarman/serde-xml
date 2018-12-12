@@ -393,7 +393,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
         self.characters(v)
 	}
     
-    fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok>
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok>
 	{
 		unimplemented!()
 	}
@@ -405,7 +405,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_some<T: ?Sized>(
         self,
-        value: &T
+        _value: &T
     ) -> Result<Self::Ok>
     where T: Serialize
     {
@@ -419,7 +419,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_unit_struct(
         self,
-        name: &'static str
+        _name: &'static str
     ) -> Result<Self::Ok>
 	{
 		unimplemented!()
@@ -427,9 +427,9 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_unit_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str
     ) -> Result<Self::Ok>
 	{
         unimplemented!()
@@ -437,8 +437,8 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_newtype_struct<T: ?Sized>(
         self,
-        name: &'static str,
-        value: &T
+        _name: &'static str,
+        _value: &T
     ) -> Result<Self::Ok>
     where
         T: Serialize
@@ -448,10 +448,10 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_newtype_variant<T: ?Sized>(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        value: &T
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T
     ) -> Result<Self::Ok>
     where
         T: Serialize
@@ -461,7 +461,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_seq(
         self,
-        len: Option<usize>
+        _len: Option<usize>
     ) -> Result<Self::SerializeSeq>
 	{
 		unimplemented!()
@@ -469,7 +469,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_tuple(
         self,
-        len: usize
+        _len: usize
     ) -> Result<Self::SerializeTuple>
 	{
 		unimplemented!()
@@ -477,8 +477,8 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_tuple_struct(
         self,
-        name: &'static str,
-        len: usize
+        _name: &'static str,
+        _len: usize
     ) -> Result<Self::SerializeTupleStruct>
 	{
 		unimplemented!()
@@ -486,10 +486,10 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_tuple_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize
     ) -> Result<Self::SerializeTupleVariant>
 	{
 		unimplemented!()
@@ -497,7 +497,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_map(
         self,
-        len: Option<usize>
+        _len: Option<usize>
     ) -> Result<Self::SerializeMap>
 	{
 		unimplemented!()
@@ -505,21 +505,21 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     
     fn serialize_struct(
         self,
-        name: &'static str,
-        len: usize
+        _name: &'static str,
+        _len: usize
     ) -> Result<Self::SerializeStruct> {
         unimplemented!()
     }
 
     fn serialize_struct_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize
     ) -> Result<Self::SerializeStructVariant> {
         unimplemented!()
-    }    
+    }
 }
 
 pub struct MapSerializer<'ser, W: 'ser + Write> {

@@ -106,7 +106,7 @@ fn map() {
         ].iter().cloned().collect(),
     };
     
-    let expected = indoc!(r#"
+    let expected1 = indoc!(r#"
         <?xml version="1.0" encoding="UTF-8"?>
         <document>
           <content>
@@ -114,10 +114,19 @@ fn map() {
             <second-key>more text</second-key>
           </content>
         </document>"#);
+        
+    let expected2 = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>
+            <second-key>more text</second-key>
+            <first.key>plain text</first.key>
+          </content>
+        </document>"#);
     
     let actual = to_string(&input).unwrap();
     
-    assert_eq!(expected, actual);
+    assert!(vec![expected1.to_string(), expected2.to_string()].contains(&actual));
 }
 
 #[test]
