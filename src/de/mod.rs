@@ -298,19 +298,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         V: Visitor<'de>,
     {
         debug!("Struct {}", name);
-        if self.root {
-            self.root = false;
-            self.start_document()?;
-            let tag_name = self.start_tag()?;
-            
-            let v = self.deserialize_map(visitor)?;
-            
-            let _ = self.end_tag(&tag_name);
-            self.end_document()?;
-            Ok(v)
-        } else {
-            self.deserialize_map(visitor)
-        }
+        self.deserialize_map(visitor)
     }
 
     fn deserialize_enum<V>(
