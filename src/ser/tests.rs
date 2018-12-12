@@ -101,8 +101,8 @@ fn map() {
     
     let input = Document {
         content: [
-            ("first.key".to_string(), "plain text".to_string()),
             ("second-key".to_string(), "more text".to_string()),
+            ("first.key".to_string(), "plain text".to_string()),
         ].iter().cloned().collect(),
     };
     
