@@ -272,8 +272,20 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        let map_value = visitor.visit_map(MapAccess::new(&mut self))?;
-        Ok(map_value)
+        debug!("Map");
+        if self.root {
+            self.root = false;
+            self.start_document()?;
+            let tag_name = self.start_tag()?;
+            
+            let v = visitor.visit_map(MapAccess::new(&mut self))?;
+            
+            let _ = self.end_tag(&tag_name);
+            self.end_document()?;
+            Ok(v)
+        } else {
+            visitor.visit_map(MapAccess::new(&mut self))
+        }
     }
 
     fn deserialize_struct<V>(
