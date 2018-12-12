@@ -271,6 +271,35 @@ fn tuple_variant() {
 }
 
 #[test]
+fn tuple_struct() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Value(String, String);
+    
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document {
+        content: Value,
+    }
+    
+    let input = Document {
+        content: Value("abc".to_string(), "123".to_string()),
+    };
+    
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <document>
+          <content>abc 123</content>
+        </document>"#);
+    
+    let actual = to_string(&input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
 fn tuple() {
     setup();
     
