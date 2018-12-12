@@ -32,7 +32,7 @@ pub struct Deserializer<R: Read> {
     reader: EventReader<R>,
     root: bool,
     lookahead: Option<XmlEvent>,
-    tag_name: String,
+    tag_name: Option<String>,
 }
 
 impl<R: Read> Deserializer<R> {
@@ -41,7 +41,7 @@ impl<R: Read> Deserializer<R> {
             reader,
             root: true,
             lookahead: None,
-            tag_name: "".to_string(),
+            tag_name: None,
         };
         Ok(d)
     }
@@ -84,8 +84,13 @@ impl<R: Read> Deserializer<R> {
         }
     }
     
-    fn current_tag(&self) -> Result<String> {
-        Ok(self.tag_name.clone())
+    fn current_tag(&self) -> Option<String> {
+        self.tag_name.as_ref().cloned()
+    }
+    
+    fn clear_tag(&mut self) -> Result<()> {
+        self.tag_name = None;
+        Ok(())
     }
     
     fn start_document(&mut self) -> Result<()> {
@@ -259,7 +264,8 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        self.clear_tag()?;
+        visitor.visit_seq(TupleAccess::new(self)?)
     }
 
     fn deserialize_map<V>(mut self, visitor: V) -> Result<V::Value>
@@ -307,9 +313,9 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         match self.peek()? {
             XmlEvent::StartElement { .. } => {
                 let tag_name = self.start_tag()?;
-                self.tag_name = tag_name.clone();
+                self.tag_name = Some(tag_name.clone());
                 debug!("Variant {}", tag_name);
-                let v = visitor.visit_enum(VariantAccess::new(self))?;
+                let v = visitor.visit_enum(VariantAccess::new(self)?)?;
                 self.end_tag(&tag_name)?;
                 Ok(v)
             },

@@ -210,17 +210,21 @@ fn tuple_variant() {
 }
 
 #[test]
-fn types_bool() {
+fn tuple_struct() {
     setup();
     
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     #[serde(rename_all = "kebab-case")]
+    struct Value(String, String);
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
     struct Document {
-        content: bool,
+        content: Value,
     }
     
     let object = Document {
-        content: true,
+        content: Value("abc".to_string(), "123".to_string()),
     };
     
     round_trip(&object);
@@ -238,6 +242,23 @@ fn tuple() {
     
     let object = Document {
         content: (123i32, 1.23f64, "abc".to_string()),
+    };
+    
+    round_trip(&object);
+}
+
+#[test]
+fn types_bool() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Document {
+        content: bool,
+    }
+    
+    let object = Document {
+        content: true,
     };
     
     round_trip(&object);

@@ -3,7 +3,7 @@ use std::io::Read;
 use xml::reader::XmlEvent;
 
 use super::Deserializer;
-use super::super::error::{Error, Result};
+use super::super::error::{self, Error, Result};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
@@ -13,7 +13,8 @@ pub struct SeqAccess<'a, R: 'a + Read> {
 
 impl<'a, R: 'a + Read> SeqAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Result<Self> {
-        let tag_name = de.current_tag()?;
+        let tag_name = de.current_tag()
+            .ok_or(error::with_message("expected current tag".to_string()))?;
         Ok(SeqAccess { de, tag_name, first: true })
     }
 }
