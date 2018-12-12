@@ -83,12 +83,16 @@ fn map() {
     
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     #[serde(rename = "document", rename_all = "kebab-case")]
-    struct Document(HashMap<String, String>);
+    struct Document {
+        content: HashMap<String, String>
+    };
     
-    let object = Document([
-        ("first.key".to_string(), "plain text".to_string()),
-        ("second-key".to_string(), "more text".to_string()),
-        ].iter().cloned().collect());
+    let object = Document {
+        content: [
+            ("first.key".to_string(), "plain text".to_string()),
+            ("second-key".to_string(), "more text".to_string()),
+        ].iter().cloned().collect()
+    };
 
     round_trip(&object);
 }
