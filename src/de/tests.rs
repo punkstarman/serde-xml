@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub use super::from_str;
 
 pub use ::tests::setup_logger;
@@ -71,6 +73,30 @@ fn multiple_elements() {
         <document>
             <first>plain text</first>
             <second>more text</second>
+        </document>";
+    
+    let actual: Document = from_str(input).unwrap();
+    
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn map() {
+    setup();
+    
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(rename = "document", rename_all = "kebab-case")]
+    struct Document(HashMap<String, String>);
+    
+    let expected = Document([
+        ("first.key".to_string(), "plain text".to_string()),
+        ("second-key".to_string(), "more text".to_string()),
+        ].iter().cloned().collect());
+    
+    let input = r"
+        <document>
+            <first.key>plain text</first.key>
+            <second-key>more text</second-key>
         </document>";
     
     let actual: Document = from_str(input).unwrap();
