@@ -609,7 +609,7 @@ mod attribute {
         setup();
         
         #[derive(Debug, PartialEq, Deserialize)]
-        #[serde(rename = "document", rename_all = "kebab-case")]
+        #[serde(rename_all = "kebab-case")]
         struct Entity {
             #[serde(rename = "@id")]
             id: String,
