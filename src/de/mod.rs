@@ -2,6 +2,7 @@ use std::io::Read;
 
 use serde::de::{DeserializeOwned, Visitor};
 
+use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, ParserConfig, XmlEvent};
 
 use super::error::{self, Error, Result};
@@ -10,6 +11,7 @@ mod map;
 mod seq;
 mod tuple;
 mod var;
+mod plain;
 
 use self::map::MapAccess;
 use self::seq::SeqAccess;
@@ -33,6 +35,7 @@ pub struct Deserializer<R: Read> {
     root: bool,
     lookahead: Option<XmlEvent>,
     tag_name: Option<String>,
+    attributes: Option<Vec<OwnedAttribute>>,
 }
 
 impl<R: Read> Deserializer<R> {
@@ -42,6 +45,7 @@ impl<R: Read> Deserializer<R> {
             root: true,
             lookahead: None,
             tag_name: None,
+            attributes: None,
         };
         Ok(d)
     }
@@ -93,6 +97,10 @@ impl<R: Read> Deserializer<R> {
         Ok(())
     }
     
+    fn take_attributes(&mut self) -> Vec<OwnedAttribute> {
+        self.attributes.take().unwrap_or(vec![])
+    }
+    
     fn start_document(&mut self) -> Result<()> {
         match self.next()? {
             XmlEvent::StartDocument { .. } => Ok(()),
@@ -107,9 +115,9 @@ impl<R: Read> Deserializer<R> {
         }
     }
     
-    fn start_tag(&mut self) -> Result<String> {
+    fn start_tag(&mut self) -> Result<(String, Vec<OwnedAttribute>)> {
         match self.next()? {
-            XmlEvent::StartElement { name, .. } => Ok(name.local_name),
+            XmlEvent::StartElement { name, attributes, .. } => Ok((name.local_name, attributes)),
             _ => Err(error::with_message("expecting start tag".to_string())),
         }
     }
@@ -276,15 +284,16 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         if self.root {
             self.root = false;
             self.start_document()?;
-            let tag_name = self.start_tag()?;
+            let (tag_name, attributes) = self.start_tag()?;
             
-            let v = visitor.visit_map(MapAccess::new(&mut self))?;
+            let v = visitor.visit_map(MapAccess::new(&mut self, attributes))?;
             
             let _ = self.end_tag(&tag_name);
             self.end_document()?;
             Ok(v)
         } else {
-            visitor.visit_map(MapAccess::new(&mut self))
+            let attributes = self.take_attributes();
+            visitor.visit_map(MapAccess::new(&mut self, attributes))
         }
     }
 
@@ -312,7 +321,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     {
         match self.peek()? {
             XmlEvent::StartElement { .. } => {
-                let tag_name = self.start_tag()?;
+                let (tag_name, _) = self.start_tag()?;
                 self.tag_name = Some(tag_name.clone());
                 debug!("Variant {}", tag_name);
                 let v = visitor.visit_enum(VariantAccess::new(self)?)?;
