@@ -40,6 +40,10 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
             },
             None => match self.de.peek()? {
                 XmlEvent::EndElement { .. } | XmlEvent::EndDocument => Ok(None),
+                XmlEvent::Characters { .. } => {
+                    self.value = Some(self.de.characters()?);
+                    seed.deserialize(".".into_deserializer()).map(Some)
+                },
                 XmlEvent::StartElement { .. } => {
                     let (tag_name, attributes) = self.de.start_tag()?;
                     self.de.tag_name = Some(tag_name.clone());
