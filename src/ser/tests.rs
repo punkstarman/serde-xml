@@ -495,5 +495,40 @@ mod option {
         
         assert_eq!(expected, actual);
     }
+}
 
+mod attribute {
+    use super::*;
+    
+    #[test]
+    fn single() {
+        setup();
+        
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename_all = "kebab-case")]
+        struct Entity {
+            #[serde(rename = "@id")]
+            id: String,
+        }
+        
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename_all = "kebab-case")]
+        struct Document {
+            content: Entity,
+        }
+        
+        let input = Document {
+            content: Entity { id: "123".to_string() },
+        };
+        
+        let expected = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content id="123" />
+            </document>"#);
+        
+        let actual = to_string(&input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
 }
