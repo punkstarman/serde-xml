@@ -542,7 +542,7 @@ mod attribute {
         }
         
         #[derive(Debug, PartialEq, Deserialize)]
-        #[serde(rename = "document", rename_all = "kebab-case")]
+        #[serde(rename_all = "kebab-case")]
         struct Document {
             content: Entity,
         }
@@ -552,6 +552,85 @@ mod attribute {
         };
         
         let input = r#"<document><content id="123" /></document>"#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn root() {
+        setup();
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "@version")]
+            version: String,
+        }
+        
+        let expected = Document {
+            version: "1.2.3".to_string(),
+        };
+        
+        let input = r#"<document version="1.2.3"></document>"#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn root_and_subtag() {
+        setup();
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "@version")]
+            version: String,
+            content: String,
+        }
+        
+        let expected = Document {
+            version: "1.2.3".to_string(),
+            content: "abc".to_string(),
+        };
+        
+        let input = r#"<document version="1.2.3"><content>abc</content></document>"#;
+        
+        let actual: Document = from_str(input).unwrap();
+        
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn attribute_and_body() {
+        setup();
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Entity {
+            #[serde(rename = "@id")]
+            id: String,
+            #[serde(rename = ".")]
+            text: String,
+        }
+        
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            content: Entity,
+        }
+        
+        let expected = Document {
+            content: Entity {
+                id: "123".to_string(),
+                text: "abc".to_string(),
+            },
+        };
+        
+        let input = r#"<document><content id="123">abc</content></document>"#;
         
         let actual: Document = from_str(input).unwrap();
         
