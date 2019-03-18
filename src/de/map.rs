@@ -29,11 +29,11 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
 
 impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
     type Error = Error;
-    
+
     fn next_key_seed<K: serde::de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
         match self.attributes.next() {
             Some(OwnedAttribute { name, value }) => {
-                debug!("found attribute {} {}", name, value);
+                trace!("found attribute {} {}", name, value);
                 self.value = Some(value);
                 let attribute_name = format!("@{}", name.local_name);
                 seed.deserialize(attribute_name.into_deserializer()).map(Some)
@@ -48,7 +48,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
                     let (tag_name, attributes) = self.de.start_tag()?;
                     self.de.tag_name = Some(tag_name.clone());
                     self.de.attributes = Some(attributes);
-                    debug!("found subtag {}", tag_name);
+                    trace!("found subtag {}", tag_name);
                     self.end_tag = Some(tag_name.clone());
                     seed.deserialize(tag_name.into_deserializer()).map(Some)
                 },
@@ -56,7 +56,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
             },
         }
     }
-    
+
     fn next_value_seed<V: serde::de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
         match self.value.take() {
             Some(v) => seed.deserialize(PlainStringDeserializer(v)),

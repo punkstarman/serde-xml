@@ -9,7 +9,7 @@ pub struct TupleAccess {
 
 impl TupleAccess {
     pub fn new<'a, R: 'a + Read>(de: &'a mut Deserializer<R>) -> Result<Self> {
-        debug!("looking for tuple");
+        trace!("looking for tuple");
         let items: Vec<String> = de.characters()?.split_whitespace()
             .map(String::from)
             .collect();
@@ -19,7 +19,7 @@ impl TupleAccess {
 
 impl<'de> serde::de::SeqAccess<'de> for TupleAccess {
     type Error = Error;
-    
+
     fn next_element_seed<T: serde::de::DeserializeSeed<'de>>(
         &mut self,
         seed: T,
@@ -28,7 +28,7 @@ impl<'de> serde::de::SeqAccess<'de> for TupleAccess {
         match self.items.next() {
             None => Ok(None),
             Some(item) => {
-                debug!("found tuple item {}", item);
+                trace!("found tuple item {}", item);
                 seed.deserialize(TupleValueDeserializer(item)).map(Some)
             },
         }

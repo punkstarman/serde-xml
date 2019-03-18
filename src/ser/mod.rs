@@ -1,4 +1,7 @@
+mod map;
 mod plain;
+mod seq;
+mod tuple;
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -9,7 +12,9 @@ use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 use super::error::{self, Result, Error};
 
-use self::plain::to_plain_string;
+use self::map::{MapSerializer, StructSerializer};
+use self::seq::SeqSeralizer;
+use self::tuple::TupleSerializer;
 
 pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
     let mut writer = Vec::with_capacity(128);
@@ -57,6 +62,15 @@ impl<W: Write> Serializer<W> {
             standalone: Default::default(),
             version: xml::common::XmlVersion::Version10
         })
+    }
+
+    fn open_root_tag(&mut self, name: &'static str) -> Result<()> {
+        if self.root {
+            self.root = false;
+            self.start_document()?;
+            self.open_tag(name)?;
+        }
+        Ok(())
     }
 
     fn open_tag(&mut self, tag_name: &str) -> Result<()> {
@@ -110,7 +124,6 @@ impl<W: Write> Serializer<W> {
     }
 }
 
-#[allow(unused_variables)]
 impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type Ok = ();
     type Error = Error;
@@ -121,16 +134,11 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type SerializeTupleVariant = TupleSerializer<'ser, W>;
     type SerializeMap = MapSerializer<'ser, W>;
     type SerializeStruct = StructSerializer<'ser, W>;
-    type SerializeStructVariant = StructVariantSerializer<'ser, W>;
+    type SerializeStructVariant = StructSerializer<'ser, W>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok>
     {
-        let must_close_tag = self.build_start_tag()?;
-        self.characters(&v.to_string())?;
-        if must_close_tag {
-            self.end_tag()?;
-        }
-        Ok(())
+        self.serialize_str(&v.to_string())
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok>
@@ -150,12 +158,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok>
 	{
-        let must_close_tag = self.build_start_tag()?;
-        self.characters(&v.to_string())?;
-        if must_close_tag {
-            self.end_tag()?;
-        }
-        Ok(())
+        self.serialize_str(&v.to_string())
 	}
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok>
@@ -190,22 +193,12 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok>
 	{
-        let must_close_tag = self.build_start_tag()?;
-        self.characters(&v.to_string())?;
-        if must_close_tag {
-            self.end_tag()?;
-        }
-        Ok(())
+        self.serialize_str(&v.to_string())
 	}
 
     fn serialize_char(self, v: char) -> Result<Self::Ok>
 	{
-        let must_close_tag = self.build_start_tag()?;
-        self.characters(&v.to_string())?;
-        if must_close_tag {
-            self.end_tag()?;
-        }
-        Ok(())
+        self.serialize_str(&v.to_string())
 	}
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok>
@@ -218,13 +211,14 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         Ok(())
 	}
 
-    fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok>
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok>
 	{
 		unimplemented!()
 	}
 
     fn serialize_none(self) -> Result<Self::Ok>
 	{
+        trace!("None");
         let must_close_tag = self.build_start_tag()?;
         if must_close_tag {
             self.end_tag()?;
@@ -238,11 +232,13 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     ) -> Result<Self::Ok>
     where T: Serialize
     {
+        trace!("Some");
         value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok>
 	{
+        trace!("Unit");
         let must_close_tag = self.build_start_tag()?;
         if must_close_tag {
             self.end_tag()?;
@@ -255,16 +251,18 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         name: &'static str
     ) -> Result<Self::Ok>
 	{
+        trace!("Unit struct {}", name);
 		self.serialize_unit()
 	}
 
     fn serialize_unit_variant(
         self,
         name: &'static str,
-        variant_index: u32,
+        _variant_index: u32,
         variant: &'static str
     ) -> Result<Self::Ok>
 	{
+        trace!("Unit variant {}::{}", name, variant);
         self.serialize_str(variant)
 	}
 
@@ -276,13 +274,14 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     where
         T: Serialize
 	{
+        trace!("Newtype struct {}", name);
         value.serialize(self)
 	}
 
     fn serialize_newtype_variant<T: ?Sized>(
         self,
         name: &'static str,
-        variant_index: u32,
+        _variant_index: u32,
         variant: &'static str,
         value: &T
     ) -> Result<Self::Ok>
@@ -290,11 +289,10 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         T: Serialize
 	{
         let must_close_tag = self.build_start_tag()?;
-        debug!("Newtype variant {}", variant);
+
+        trace!("Newtype variant {}::{}", name, variant);
         self.open_tag(variant)?;
-        //self.start_tag(variant)?;
         value.serialize(&mut *self)?;
-        //self.end_tag()?;
 
         if must_close_tag {
             self.end_tag()?;
@@ -304,17 +302,19 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 
     fn serialize_seq(
         self,
-        len: Option<usize>
+        _len: Option<usize>
     ) -> Result<Self::SerializeSeq>
 	{
+        trace!("Sequence");
 		Ok(SeqSeralizer::new(self))
 	}
 
     fn serialize_tuple(
         self,
-        len: usize
+        _len: usize
     ) -> Result<Self::SerializeTuple>
 	{
+        trace!("Tuple");
         let must_close_tag = self.build_start_tag()?;
 		Ok(TupleSerializer::new(self, must_close_tag))
 	}
@@ -322,9 +322,10 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     fn serialize_tuple_struct(
         self,
         name: &'static str,
-        len: usize
+        _len: usize
     ) -> Result<Self::SerializeTupleStruct>
 	{
+        trace!("Tuple struct {}", name);
         let must_close_tag = self.build_start_tag()?;
 		Ok(TupleSerializer::new(self, must_close_tag))
 	}
@@ -332,21 +333,20 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     fn serialize_tuple_variant(
         self,
         name: &'static str,
-        variant_index: u32,
+        _variant_index: u32,
         variant: &'static str,
-        len: usize
+        _len: usize
     ) -> Result<Self::SerializeTupleVariant>
 	{
+        trace!("Tuple variant {}::{}", name, variant);
         let must_close_tag = self.build_start_tag()?;
-		//self.start_tag(variant)?;
-        self.open_tag(variant)?;
-        self.build_start_tag()?;
+        self.start_tag(variant, HashMap::new())?;
         Ok(TupleSerializer::new(self, must_close_tag))
 	}
 
     fn serialize_map(
         self,
-        len: Option<usize>
+        _len: Option<usize>
     ) -> Result<Self::SerializeMap>
 	{
         let must_close_tag = self.build_start_tag()?;
@@ -356,271 +356,27 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     fn serialize_struct(
         self,
         name: &'static str,
-        len: usize
+        _len: usize
     ) -> Result<Self::SerializeStruct> {
-        debug!("Struct {}", name);
-        if self.root {
-            self.root = false;
-            self.start_document()?;
-            self.open_tag(name)?;
-        }
-        Ok(StructSerializer::new(self))
+        self.open_root_tag(name)?;
+
+        trace!("Struct {}", name);
+        Ok(StructSerializer::new(self, false))
     }
 
     fn serialize_struct_variant(
         self,
         name: &'static str,
-        variant_index: u32,
+        _variant_index: u32,
         variant: &'static str,
-        len: usize
+        _len: usize
     ) -> Result<Self::SerializeStructVariant> {
-        debug!("Struct variant {}", variant);
-        if self.root {
-            self.root = false;
-            self.start_document()?;
-            self.open_tag(name)?;
-        }
-        //self.start_tag(variant)?;
+        self.open_root_tag(name)?;
+
+        trace!("Struct variant {}", variant);
         let must_close_tag = self.build_start_tag()?;
         self.open_tag(variant)?;
-        Ok(StructVariantSerializer::new(self, must_close_tag))
-    }
-}
-
-pub struct MapSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
-    must_close_tag: bool,
-}
-
-impl<'ser, W: 'ser + Write> MapSerializer<'ser, W> {
-    fn new(ser: &'ser mut Serializer<W>, must_close_tag: bool) -> Self {
-        MapSerializer { ser, must_close_tag }
-    }
-}
-
-impl<'ser, W: Write> serde::ser::SerializeMap for MapSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_key<T>(&mut self, key: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        //self.ser.start_tag(&to_plain_string(key)?)?;
-        self.ser.open_tag(&to_plain_string(key)?)?;
-        Ok(())
-    }
-
-    fn serialize_value<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        value.serialize(&mut *self.ser)?;
-        //self.ser.end_tag()?;
-        Ok(())
-    }
-
-    fn end(self) -> Result<()> {
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
-    }
-}
-
-pub struct StructSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>
-}
-
-impl<'ser, W: 'ser + Write> StructSerializer<'ser, W> {
-    fn new(ser: &'ser mut Serializer<W>) -> Self {
-        StructSerializer { ser }
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeStruct for StructSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        if key.starts_with("@") {
-            debug!("attribute {}", key);
-            self.ser.add_attr(&key[1..], plain::to_plain_string(value)?)
-        } else {
-            self.ser.build_start_tag()?;
-            self.ser.open_tag(key)?;
-            debug!("field {}", key);
-            value.serialize(&mut *self.ser)?;
-            debug!("end field");
-            Ok(())
-        }
-    }
-
-    fn end(self) -> Result<()> {
-        self.ser.build_start_tag()?;
-        self.ser.end_tag()?;
-        Ok(())
-    }
-}
-
-pub struct StructVariantSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
-    must_close_tag: bool,
-}
-
-impl<'ser, W: 'ser + Write> StructVariantSerializer<'ser, W> {
-    fn new(ser: &'ser mut Serializer<W>, must_close_tag: bool) -> Self {
-        Self { ser, must_close_tag }
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeStructVariant for StructVariantSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        if key.starts_with("@") {
-            debug!("attribute {}", key);
-            self.ser.add_attr(&key[1..], plain::to_plain_string(value)?)
-        } else {
-            self.ser.build_start_tag()?;
-            self.ser.open_tag(key)?;
-            debug!("field {}", key);
-            value.serialize(&mut *self.ser)?;
-            debug!("end field");
-            Ok(())
-        }
-    }
-
-    fn end(self) -> Result<()> {
-        self.ser.build_start_tag()?;
-        self.ser.end_tag()?;
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
-    }
-}
-
-pub struct TupleSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
-    must_close_tag: bool,
-    first: bool,
-}
-
-impl<'ser, W: 'ser + Write> TupleSerializer<'ser, W> {
-    fn new(ser: &'ser mut Serializer<W>, must_close_tag: bool) -> Self {
-        Self { ser, must_close_tag, first: true }
-    }
-
-    fn serialize_item<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        if self.first {
-            self.first = false;
-        } else {
-            self.ser.characters(" ")?;
-        }
-        value.serialize(&mut *self.ser)?;
-        Ok(())
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_item(value)
-    }
-
-    fn end(self) -> Result<()> {
-        self.ser.end_tag()?;
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleStruct for TupleSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_item(value)
-    }
-
-    fn end(self) -> Result<()> {
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTuple for TupleSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_item(value)
-    }
-
-    fn end(self) -> Result<()> {
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
-    }
-}
-
-pub struct SeqSeralizer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>
-}
-
-impl<'ser, W: 'ser + Write> SeqSeralizer<'ser, W> {
-    fn new(ser: &'ser mut Serializer<W>) -> Self {
-        SeqSeralizer { ser }
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeSeq for SeqSeralizer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        let must_close_tag = self.ser.build_start_tag()?;
-        value.serialize(&mut *self.ser)?;
-        if must_close_tag {
-            self.ser.end_tag()?;
-            self.ser.reopen_tag()?;
-        }
-        Ok(())
-    }
-
-    fn end(self) -> Result<()> {
-        self.ser.abandon_tag()?;
-        Ok(())
+        Ok(StructSerializer::new(self, must_close_tag))
     }
 }
 

@@ -16,8 +16,7 @@ mod plain;
 use self::map::MapAccess;
 use self::seq::SeqAccess;
 use self::tuple::TupleAccess;
-use self::var::VariantAccess;
-use self::var::UnitVariantAccess;
+use self::var::{VariantAccess, UnitVariantAccess};
 
 pub fn from_reader<'de, R: Read, T: serde::de::Deserialize<'de>>(reader: R) -> Result<T> {
     T::deserialize(&mut Deserializer::new_from_reader(reader)?)
@@ -49,7 +48,7 @@ impl<R: Read> Deserializer<R> {
         };
         Ok(d)
     }
-    
+
     pub fn new_from_reader(reader: R) -> Result<Self> {
         let config = ParserConfig::new()
             .trim_whitespace(true)
@@ -60,7 +59,7 @@ impl<R: Read> Deserializer<R> {
 
         Self::new(EventReader::new_with_config(reader, config))
     }
-    
+
     fn peek(&mut self) -> Result<&XmlEvent> {
         trace!("Peeking ...");
         match self.lookahead {
@@ -68,18 +67,18 @@ impl<R: Read> Deserializer<R> {
             Some(ref e) => Ok(&e)
         }
     }
-    
+
     fn do_next(&mut self) -> Result<XmlEvent> {
         trace!("Reading from {:p}", &self.reader);
         match self.reader.next().map_err(error::reader)? {
             XmlEvent::ProcessingInstruction { .. } => self.do_next(),
             e => {
-                debug!("event {:?}", e);
+                trace!("event {:?}", e);
                 Ok(e)
             }
         }
     }
-    
+
     fn next(&mut self) -> Result<XmlEvent> {
         trace!("Popping!");
         match self.lookahead.take() {
@@ -87,52 +86,52 @@ impl<R: Read> Deserializer<R> {
             None => self.do_next(),
         }
     }
-    
+
     fn current_tag(&self) -> Option<String> {
         self.tag_name.as_ref().cloned()
     }
-    
+
     fn clear_tag(&mut self) -> Result<()> {
         self.tag_name = None;
         Ok(())
     }
-    
+
     fn take_attributes(&mut self) -> Vec<OwnedAttribute> {
         self.attributes.take().unwrap_or(vec![])
     }
-    
+
     fn start_document(&mut self) -> Result<()> {
         match self.next()? {
             XmlEvent::StartDocument { .. } => Ok(()),
             e => Err(error::with_message(format!("expected start document, but got {:?}", e))),
         }
     }
-    
+
     fn end_document(&mut self) -> Result<()> {
         match self.next()? {
             XmlEvent::EndDocument { .. } => Ok(()),
             e => Err(error::with_message(format!("expected end of document, but got {:?}", e))),
         }
     }
-    
+
     fn start_tag(&mut self) -> Result<(String, Vec<OwnedAttribute>)> {
         match self.next()? {
             XmlEvent::StartElement { name, attributes, .. } => Ok((name.local_name, attributes)),
             _ => Err(error::with_message("expecting start tag".to_string())),
         }
     }
-    
+
     fn end_tag(&mut self, tag_name: &str) -> Result<()> {
         match self.next()? {
             XmlEvent::EndElement { ref name } if name.to_string() == tag_name => Ok(()),
             _ => Err(error::with_message("expecting end tag".to_string())),
         }
     }
-    
+
     fn characters(&mut self) -> Result<String> {
-        debug!("looking for characters");
+        trace!("looking for characters");
         match self.next()? {
-            XmlEvent::Characters(s) => { debug!("got characters {}", s); Ok(s)},
+            XmlEvent::Characters(s) => { trace!("got characters {}", s); Ok(s)},
             e => Err(error::with_message(format!("expecting characters but got {:?}", e))),
         }
     }
@@ -149,7 +148,7 @@ macro_rules! deserialize_type {
 
 impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> {
     type Error = Error;
-    
+
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
@@ -174,7 +173,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     deserialize_type!(deserialize_u16, error::parse_int => visit_u16);
     deserialize_type!(deserialize_u32, error::parse_int => visit_u32);
     deserialize_type!(deserialize_u64, error::parse_int => visit_u64);
-    
+
     serde_if_integer128! {
         deserialize_type!(deserialize_u128, error::parse_int => visit_u128);
     }
@@ -280,14 +279,14 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        debug!("Map");
+        trace!("Map");
         if self.root {
             self.root = false;
             self.start_document()?;
             let (tag_name, attributes) = self.start_tag()?;
-            
+
             let v = visitor.visit_map(MapAccess::new(&mut self, attributes))?;
-            
+
             let _ = self.end_tag(&tag_name);
             self.end_document()?;
             Ok(v)
@@ -306,7 +305,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        debug!("Struct {}", name);
+        trace!("Struct {}", name);
         self.deserialize_map(visitor)
     }
 
@@ -323,7 +322,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
             XmlEvent::StartElement { .. } => {
                 let (tag_name, _) = self.start_tag()?;
                 self.tag_name = Some(tag_name.clone());
-                debug!("Variant {}", tag_name);
+                trace!("Variant {}", tag_name);
                 let v = visitor.visit_enum(VariantAccess::new(self)?)?;
                 self.end_tag(&tag_name)?;
                 Ok(v)
