@@ -65,6 +65,11 @@ impl<'ser, W: 'ser + Write> StructSerializer<'ser, W> {
         if key.starts_with("@") {
             trace!("attribute {}", key);
             self.ser.add_attr(&key[1..], to_plain_string(value)?)
+        } else if key == "." {
+            self.ser.build_start_tag()?;
+            trace!("body");
+            value.serialize(&mut *self.ser)?;
+            Ok(())
         } else {
             self.ser.build_start_tag()?;
             self.ser.open_tag(key)?;
