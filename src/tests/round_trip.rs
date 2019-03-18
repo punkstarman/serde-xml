@@ -410,6 +410,35 @@ mod attribute {
     }
 
     #[test]
+    fn multiple() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename_all = "kebab-case")]
+        struct Entity {
+            #[serde(rename = "@x")]
+            x: i32,
+            #[serde(rename = "@y")]
+            y: i32,
+        }
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            content: Entity,
+        }
+
+        let object = Document {
+            content: Entity {
+                x: 20,
+                y: 40,
+            },
+        };
+
+        round_trip(&object);
+    }
+
+    #[test]
     fn root() {
         setup();
 
@@ -442,6 +471,35 @@ mod attribute {
         let object = Document {
             version: "1.2.3".to_string(),
             content: "abc".to_string(),
+        };
+
+        round_trip(&object);
+    }
+
+    #[test]
+    fn attribute_and_body() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename_all = "kebab-case")]
+        struct Entity {
+            #[serde(rename = "@id")]
+            id: String,
+            #[serde(rename = ".")]
+            text: String,
+        }
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            content: Entity,
+        }
+
+        let object = Document {
+            content: Entity {
+                id: "123".to_string(),
+                text: "abc".to_string(),
+            },
         };
 
         round_trip(&object);

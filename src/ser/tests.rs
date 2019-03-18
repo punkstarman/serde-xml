@@ -535,6 +535,50 @@ mod attribute {
     }
 
     #[test]
+    fn multiple() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename_all = "kebab-case")]
+        struct Entity {
+            #[serde(rename = "@x")]
+            x: i32,
+            #[serde(rename = "@y")]
+            y: i32,
+        }
+
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            content: Entity,
+        }
+
+        let input = Document {
+            content: Entity {
+                x: 20,
+                y: 40,
+            },
+        };
+
+        let expected1 = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content x="20" y="40" />
+            </document>"#);
+        let expected2 = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content y="40" x="20" />
+            </document>"#);
+
+        let actual = to_string(&input).unwrap();
+
+        trace!("{:?}", actual);
+
+        assert!(vec![expected1.to_string(), expected2.to_string()].contains(&actual));
+    }
+
+    #[test]
     fn root() {
         setup();
 
