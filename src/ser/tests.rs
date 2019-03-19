@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub use super::to_string;
+pub use super::{to_string, to_string_ns};
 
 pub use crate::tests::setup_logger;
 
@@ -691,7 +691,7 @@ mod ns {
               <content>abc 123</content>
             </document>"#);
 
-        let actual = to_string(&input).unwrap();
+        let actual = to_string_ns("urn:example:document", &input).unwrap();
 
         assert_eq!(expected, actual);
     }
