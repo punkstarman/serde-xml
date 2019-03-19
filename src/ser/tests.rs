@@ -667,3 +667,32 @@ mod attribute {
         assert_eq!(expected, actual);
     }
 }
+
+mod ns {
+    use super::*;
+
+    #[test]
+    fn root() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            content: String,
+        }
+
+        let input = Document {
+            content: "abc 123".into(),
+        };
+
+        let expected = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns="urn:example:document">
+              <content>abc 123</content>
+            </document>"#);
+
+        let actual = to_string(&input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+}
