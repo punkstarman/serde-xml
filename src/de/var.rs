@@ -3,7 +3,6 @@ use std::io::Read;
 use serde::de::{
     Deserializer as SerdeDeserializer,
     IntoDeserializer,
-    //Visitor,
 };
 
 use super::Deserializer;
