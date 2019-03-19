@@ -24,13 +24,28 @@ pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
     Ok(string)
 }
 
+pub fn to_string_ns<S: Serialize>(default_ns: &'static str, value: &S) -> Result<String>
+{
+    let mut writer = Vec::with_capacity(128);
+    to_writer_ns(default_ns, &mut writer, value)?;
+
+    let string = String::from_utf8(writer).map_err(error::from_utf8)?;
+    Ok(string)
+}
+
 pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
-    let mut ser = Serializer::new(writer);
+    let mut ser = Serializer::new(None, writer);
+    value.serialize(&mut ser)
+}
+
+pub fn to_writer_ns<W: Write, S: Serialize>(default_ns: &'static str, writer: W, value: &S) -> Result<()> {
+    let mut ser = Serializer::new(Some(default_ns), writer);
     value.serialize(&mut ser)
 }
 
 pub struct Serializer<W>
 where W: Write {
+    default_ns: Option<&'static str>,
     writer: EventWriter<W>,
     root: bool,
     current_tag: String,
@@ -38,12 +53,13 @@ where W: Write {
 }
 
 impl<W: Write> Serializer<W> {
-    fn new_from_writer(writer: EventWriter<W>) -> Self {
-        Self { writer, root: true, current_tag: "".to_string(), current_tag_attrs: None }
+    fn new_from_writer(default_ns: Option<&'static str>, writer: EventWriter<W>) -> Self {
+        Self { default_ns, writer, root: true, current_tag: "".to_string(), current_tag_attrs: None }
     }
 
-    pub fn new(writer: W) -> Self {
-        Self::new_from_writer(EmitterConfig::new()
+    pub fn new(default_ns: Option<&'static str>, writer: W) -> Self {
+        Self::new_from_writer(default_ns,
+            EmitterConfig::new()
             .perform_indent(true)
             .create_writer(writer))
     }
@@ -101,17 +117,28 @@ impl<W: Write> Serializer<W> {
     fn build_start_tag(&mut self) -> Result<bool> {
         if let Some(attrs) = self.current_tag_attrs.take() {
             let current_tag = self.current_tag();
-            self.start_tag(&current_tag, attrs)?;
+            let default_ns = self.default_ns.take();
+            self.start_tag(&current_tag, attrs, default_ns)?;
             Ok(true)
         } else {
             Ok(false)
         }
     }
 
-    fn start_tag(&mut self, tag_name: &str, attrs: HashMap<&str, String>) -> Result<()> {
-        let element = attrs.iter().fold(
+    fn start_tag(
+        &mut self,
+        tag_name: &str,
+        attrs: HashMap<&str, String>,
+        default_ns: Option<&'static str>) -> Result<()>
+    {
+        let mut element = attrs.iter().fold(
             XmlEvent::start_element(tag_name),
             |b, (&name, value)| b.attr(name, value));
+
+        if default_ns.is_some() {
+            element = element.default_ns(default_ns.unwrap());
+        }
+        
         self.next(element.into())
     }
 
@@ -340,7 +367,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	{
         trace!("Tuple variant {}::{}", name, variant);
         let must_close_tag = self.build_start_tag()?;
-        self.start_tag(variant, HashMap::new())?;
+        self.start_tag(variant, HashMap::new(), None)?;
         Ok(TupleSerializer::new(self, must_close_tag))
 	}
 

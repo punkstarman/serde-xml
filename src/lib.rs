@@ -22,7 +22,7 @@ mod ser;
 
 pub use self::de::{from_str, from_reader, Deserializer};
 pub use self::error::{Error, Result};
-pub use self::ser::{to_string, to_writer, Serializer};
+pub use self::ser::{to_string, to_string_ns, to_writer, Serializer};
 
 #[cfg(test)]
 mod tests;
