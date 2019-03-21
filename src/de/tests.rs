@@ -792,3 +792,58 @@ mod any {
         assert_eq!("abc", actual.content);
     }
 }
+
+mod ns {
+    use super::*;
+
+    #[test]
+    fn root() {
+        setup();
+
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "urn:example:document:document", rename_all = "kebab-case")]
+        struct Document {
+            content: String,
+        }
+
+        let expected = Document {
+            content: "abc 123".into(),
+        };
+
+        let input = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns="urn:example:document">
+              <content>abc 123</content>
+            </document>"#);
+
+        let actual: Document = from_str(input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn inner_node() {
+        setup();
+
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "urn:example:document:content")]
+            content: String,
+        }
+
+        let expected = Document {
+            content: "abc 123".into(),
+        };
+
+        let input = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content xmlns="urn:example:document">abc 123</content>
+            </document>"#);
+
+        let actual = from_str(input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+}

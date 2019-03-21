@@ -505,3 +505,42 @@ mod attribute {
         round_trip(&object);
     }
 }
+
+mod ns {
+    use super::*;
+
+    #[test]
+    fn root() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "urn:example:document:document", rename_all = "kebab-case")]
+        struct Document {
+            content: String,
+        }
+
+        let object = Document {
+            content: "abc 123".into(),
+        };
+
+        round_trip(&object);
+    }
+
+    #[test]
+    fn inner_node() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "urn:example:document:content")]
+            content: String,
+        }
+
+        let object = Document {
+            content: "abc 123".into(),
+        };
+
+        round_trip(&object);
+    }
+}

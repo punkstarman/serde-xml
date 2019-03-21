@@ -695,4 +695,30 @@ mod ns {
 
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn inner_node() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "urn:example:document:content")]
+            content: String,
+        }
+
+        let input = Document {
+            content: "abc 123".into(),
+        };
+
+        let expected = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document>
+              <content xmlns="urn:example:document">abc 123</content>
+            </document>"#);
+
+        let actual = to_string(&input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
 }
