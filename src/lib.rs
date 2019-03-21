@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate log;
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate serde;
 
 extern crate xml;
@@ -16,13 +18,15 @@ extern crate indoc;
 #[cfg(test)]
 extern crate env_logger;
 
+extern crate regex;
+
 mod de;
 mod error;
 mod ser;
 
-pub use self::de::{from_str, from_reader, Deserializer};
-pub use self::error::{Error, Result};
-pub use self::ser::{to_string, to_string_ns, to_writer, Serializer};
+pub use de::{from_str, from_reader, Deserializer};
+pub use error::{Error, Result};
+pub use ser::{to_string, to_string_ns, to_writer, Serializer};
 
 #[cfg(test)]
 mod tests;

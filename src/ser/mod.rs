@@ -24,28 +24,13 @@ pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
     Ok(string)
 }
 
-pub fn to_string_ns<S: Serialize>(default_ns: &'static str, value: &S) -> Result<String>
-{
-    let mut writer = Vec::with_capacity(128);
-    to_writer_ns(default_ns, &mut writer, value)?;
-
-    let string = String::from_utf8(writer).map_err(error::from_utf8)?;
-    Ok(string)
-}
-
 pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
-    let mut ser = Serializer::new(None, writer);
-    value.serialize(&mut ser)
-}
-
-pub fn to_writer_ns<W: Write, S: Serialize>(default_ns: &'static str, writer: W, value: &S) -> Result<()> {
-    let mut ser = Serializer::new(Some(default_ns), writer);
+    let mut ser = Serializer::new(writer);
     value.serialize(&mut ser)
 }
 
 pub struct Serializer<W>
 where W: Write {
-    default_ns: Option<&'static str>,
     writer: EventWriter<W>,
     root: bool,
     current_tag: String,
@@ -53,12 +38,12 @@ where W: Write {
 }
 
 impl<W: Write> Serializer<W> {
-    fn new_from_writer(default_ns: Option<&'static str>, writer: EventWriter<W>) -> Self {
-        Self { default_ns, writer, root: true, current_tag: "".to_string(), current_tag_attrs: None }
+    fn new_from_writer(writer: EventWriter<W>) -> Self {
+        Self { writer, root: true, current_tag: "".into(), current_tag_attrs: None }
     }
 
-    pub fn new(default_ns: Option<&'static str>, writer: W) -> Self {
-        Self::new_from_writer(default_ns,
+    pub fn new(writer: W) -> Self {
+        Self::new_from_writer(
             EmitterConfig::new()
             .perform_indent(true)
             .create_writer(writer))
@@ -115,10 +100,16 @@ impl<W: Write> Serializer<W> {
     }
 
     fn build_start_tag(&mut self) -> Result<bool> {
+        lazy_static! {
+            static ref TAG_RE: regex::Regex = regex::Regex::new(r#"((?P<ns>.*):)?(?P<local>[^:]*)"#).unwrap();
+        }
+
         if let Some(attrs) = self.current_tag_attrs.take() {
             let current_tag = self.current_tag();
-            let default_ns = self.default_ns.take();
-            self.start_tag(&current_tag, attrs, default_ns)?;
+            let captures = TAG_RE.captures(&current_tag).unwrap();
+            let default_ns = captures.name("ns").map(|m| m.as_str());
+            let tag = captures.name("local").unwrap().as_str();
+            self.start_tag(tag, attrs, default_ns)?;
             Ok(true)
         } else {
             Ok(false)
@@ -129,7 +120,7 @@ impl<W: Write> Serializer<W> {
         &mut self,
         tag_name: &str,
         attrs: HashMap<&str, String>,
-        default_ns: Option<&'static str>) -> Result<()>
+        default_ns: Option<&str>) -> Result<()>
     {
         let mut element = attrs.iter().fold(
             XmlEvent::start_element(tag_name),
@@ -138,7 +129,7 @@ impl<W: Write> Serializer<W> {
         if default_ns.is_some() {
             element = element.default_ns(default_ns.unwrap());
         }
-        
+
         self.next(element.into())
     }
 
