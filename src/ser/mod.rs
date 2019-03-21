@@ -6,6 +6,8 @@ mod tuple;
 use std::collections::HashMap;
 use std::io::Write;
 
+use regex::Regex;
+
 use serde::ser::Serialize;
 
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
@@ -101,12 +103,13 @@ impl<W: Write> Serializer<W> {
 
     fn build_start_tag(&mut self) -> Result<bool> {
         lazy_static! {
-            static ref TAG_RE: regex::Regex = regex::Regex::new(r#"((?P<ns>.*):)?(?P<local>[^:]*)"#).unwrap();
+            static ref TAG_RE: Regex = Regex::new(r#"((?P<ns>.*):)?(?P<local>[^:]*)"#).unwrap();
         }
 
         if let Some(attrs) = self.current_tag_attrs.take() {
             let current_tag = self.current_tag();
             let captures = TAG_RE.captures(&current_tag).unwrap();
+
             let default_ns = captures.name("ns").map(|m| m.as_str());
             let tag = captures.name("local").unwrap().as_str();
             self.start_tag(tag, attrs, default_ns)?;
