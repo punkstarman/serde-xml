@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub use super::{to_string, to_string_ns};
+pub use super::to_string;
 
 pub use crate::tests::setup_logger;
 
@@ -676,7 +676,7 @@ mod ns {
         setup();
 
         #[derive(Debug, PartialEq, Serialize)]
-        #[serde(rename = "document", rename_all = "kebab-case")]
+        #[serde(rename = "urn:example:document:document", rename_all = "kebab-case")]
         struct Document {
             content: String,
         }
@@ -691,7 +691,7 @@ mod ns {
               <content>abc 123</content>
             </document>"#);
 
-        let actual = to_string_ns("urn:example:document", &input).unwrap();
+        let actual = to_string(&input).unwrap();
 
         assert_eq!(expected, actual);
     }
