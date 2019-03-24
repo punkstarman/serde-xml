@@ -61,6 +61,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
         match self.value.take() {
             Some(v) => seed.deserialize(PlainStringDeserializer(v)),
             None => {
+                trace!("marker");
                 let v = seed.deserialize(&mut *self.de)?;
                 let _ = self.de.end_tag(&self.end_tag.take().unwrap());
                 Ok(v)

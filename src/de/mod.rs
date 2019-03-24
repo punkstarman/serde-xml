@@ -155,6 +155,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     {
         match *self.peek()? {
             XmlEvent::StartElement { .. } => self.deserialize_map(visitor),
+            XmlEvent::EndElement { .. } => self.deserialize_unit(visitor),
             _ => self.deserialize_string(visitor),
         }
     }
