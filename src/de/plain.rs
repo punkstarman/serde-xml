@@ -5,10 +5,6 @@ use super::super::error::{self, Error, Result};
 pub struct PlainStringDeserializer(pub String);
 
 impl PlainStringDeserializer {
-    fn peek(&self) -> &str {
-        &self.0
-    }
-
     fn characters(self) -> Result<String> {
         Ok(self.0)
     }
@@ -59,12 +55,7 @@ impl<'de> serde::de::Deserializer<'de> for PlainStringDeserializer {
     where
         V: Visitor<'de>,
     {
-        if self.peek().len() > 0 {
-            visitor.visit_some(self)
-        } else {
-            visitor.visit_none()
-        }
-
+        visitor.visit_some(self)
     }
 
     fn deserialize_enum<V>(
