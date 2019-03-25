@@ -8,7 +8,7 @@
    </xs:documentation>
   </xs:annotation>
 
-  <xs:annotation>
+  <!-- <xs:annotation>
     <xs:documentation source="http://www.w3.org/TR/2004/PER-xmlschema-1-20040318/structures.html">
     The schema corresponding to this document is normative,
     with respect to the syntactic constraints it expresses in the
@@ -21,9 +21,9 @@
     <xs:documentation>
     The simpleType element and all of its members are defined
        towards the end of this schema document</xs:documentation>
-  </xs:annotation>
+  </xs:annotation> -->
 
-  <xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd">
+  <!-- <xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd">
     <xs:annotation>
       <xs:documentation>
         Get access to the xml: attribute groups for xml:lang
@@ -2460,10 +2460,10 @@
              <xs:element ref="xs:annotation" minOccurs="0"/>
            </xs:sequence>
            <xs:attribute name="value" type="xs:string" use="required"/>
-          <xs:anyAttribute namespace="##other" processContents="lax"/>
+           <xs:anyAttribute namespace="##other" processContents="lax"/>
          </xs:restriction>
        </xs:complexContent>
      </xs:complexType>
-   </xs:element>
+   </xs:element> -->
 
 </xs:schema>
