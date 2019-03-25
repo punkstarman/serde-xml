@@ -34,6 +34,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
         match self.attributes.next() {
             Some(OwnedAttribute { name, value }) => {
                 debug!("attribute {}='{}'", name, value);
+
                 self.value = Some(value);
                 let attribute_name = format!("@{}", name.local_name);
                 seed.deserialize(attribute_name.into_deserializer()).map(Some)
@@ -46,14 +47,16 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
                 XmlEvent::Characters { .. } => {
                     let body = self.de.characters()?;
                     debug!("body '{}'", body);
+
                     self.value = Some(body);
                     seed.deserialize(".".into_deserializer()).map(Some)
                 },
                 XmlEvent::StartElement { .. } => {
                     let (tag_name, attributes) = self.de.start_tag()?;
+                    debug!("subtag {}", tag_name);
+
                     self.de.tag_name = Some(tag_name.clone());
                     self.de.attributes = Some(attributes);
-                    debug!("subtag {}", tag_name);
                     self.end_tag = Some(tag_name.clone());
                     seed.deserialize(tag_name.into_deserializer()).map(Some)
                 },
@@ -67,13 +70,11 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
             Some(v) => seed.deserialize(PlainStringDeserializer(v)),
             None => {
                 let v = seed.deserialize(&mut *self.de)?;
+
                 let end_tag = self.end_tag.take().unwrap();
                 debug!("end of subtag {}", end_tag);
-                match self.de.peek()?.clone() {
-                    XmlEvent::EndElement { ref name } if name.local_name == end_tag => {
-                        self.de.end_tag(&end_tag)?;
-                    },
-                    _ => (),
+                if self.de.is_peek_end_element(&end_tag) {
+                    self.de.end_tag(&end_tag)?;
                 }
                 Ok(v)
             }

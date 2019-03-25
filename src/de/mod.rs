@@ -62,10 +62,10 @@ impl<R: Read> Deserializer<R> {
 
     fn peek(&mut self) -> Result<&XmlEvent> {
         trace!("Peeking ...");
-        match self.lookahead {
-            None => { self.lookahead = Some(self.do_next()?); Ok(&self.lookahead.as_ref().unwrap()) },
-            Some(ref e) => Ok(&e)
+        if self.lookahead.is_none() {
+            self.lookahead = Some(self.do_next()?);
         }
+        Ok(self.lookahead.as_ref().unwrap())
     }
 
     fn do_next(&mut self) -> Result<XmlEvent> {
@@ -83,6 +83,20 @@ impl<R: Read> Deserializer<R> {
         match self.lookahead.take() {
             Some(e) => Ok(e),
             None => self.do_next(),
+        }
+    }
+
+    fn is_peek_start_element(&mut self, tag_name: &str) -> bool {
+        match self.peek() {
+            Ok(XmlEvent::StartElement { ref name, .. }) => name.local_name == *tag_name,
+            _ => false,
+        }
+    }
+
+    fn is_peek_end_element(&mut self, tag_name: &str) -> bool {
+        match self.peek() {
+            Ok(XmlEvent::EndElement { ref name }) => name.local_name == *tag_name,
+            _ => false,
         }
     }
 
@@ -153,7 +167,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        match *self.peek()? {
+        match self.peek()? {
             XmlEvent::StartElement { .. } => self.deserialize_map(visitor),
             XmlEvent::EndElement { .. } => self.deserialize_unit(visitor),
             _ => self.deserialize_string(visitor),
