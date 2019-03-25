@@ -5,6 +5,10 @@ use super::super::error::{self, Error, Result};
 pub struct PlainStringDeserializer(pub String);
 
 impl PlainStringDeserializer {
+    fn peek(&self) -> &str {
+        &self.0
+    }
+
     fn characters(self) -> Result<String> {
         Ok(self.0)
     }
@@ -21,7 +25,7 @@ macro_rules! deserialize_attr_type {
 
 impl<'de> serde::de::Deserializer<'de> for PlainStringDeserializer {
     type Error = Error;
-    
+
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
@@ -43,7 +47,7 @@ impl<'de> serde::de::Deserializer<'de> for PlainStringDeserializer {
     deserialize_attr_type!(deserialize_u16, error::parse_int => visit_u16);
     deserialize_attr_type!(deserialize_u32, error::parse_int => visit_u32);
     deserialize_attr_type!(deserialize_u64, error::parse_int => visit_u64);
-    
+
     serde_if_integer128! {
         deserialize_attr_type!(deserialize_u128, error::parse_int => visit_u128);
     }
@@ -51,13 +55,18 @@ impl<'de> serde::de::Deserializer<'de> for PlainStringDeserializer {
     deserialize_attr_type!(deserialize_f32, error::parse_float => visit_f32);
     deserialize_attr_type!(deserialize_f64, error::parse_float => visit_f64);
 
-    fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        if self.peek().len() > 0 {
+            visitor.visit_some(self)
+        } else {
+            visitor.visit_none()
+        }
+
     }
-    
+
     fn deserialize_enum<V>(
         self,
         _name: &str,
