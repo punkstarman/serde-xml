@@ -52,5 +52,6 @@ mod xsd {
 
         assert_eq!(schema.target_namespace, "http://www.w3.org/2001/XMLSchema");
         assert_eq!(schema.version, "1.0");
+        assert_eq!(schema.annotations.len(), 3);
     }
 }
