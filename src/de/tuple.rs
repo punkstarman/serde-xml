@@ -28,7 +28,7 @@ impl<'de> serde::de::SeqAccess<'de> for TupleAccess {
         match self.items.next() {
             None => Ok(None),
             Some(item) => {
-                trace!("found tuple item {}", item);
+                debug!("tuple item {}", item);
                 seed.deserialize(TupleValueDeserializer(item)).map(Some)
             },
         }

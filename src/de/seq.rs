@@ -21,24 +21,31 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
 
 impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
     type Error = Error;
-    
+
     fn next_element_seed<T: serde::de::DeserializeSeed<'de>>(
         &mut self,
         seed: T,
     ) -> Result<Option<T::Value>>
     {
         if self.first {
+            debug!("beginning of sequence of {}", self.tag_name);
             self.first = false;
             seed.deserialize(&mut *self.de).map(Some)
         } else {
+            debug!("marker 1");
             self.de.end_tag(&self.tag_name)?;
+            debug!("marker 2");
             match self.de.peek()?.clone() {
                 XmlEvent::StartElement { ref name, .. } if name.local_name == self.tag_name => {
+                    debug!("element of sequence of {}", self.tag_name);
                     self.de.start_tag()?;
                     let v = seed.deserialize(&mut *self.de)?;
                     Ok(Some(v))
                 },
-                _ => Ok(None),
+                _ => {
+                    debug!("end of sequence of {}", self.tag_name);
+                    Ok(None)
+                },
             }
         }
     }
