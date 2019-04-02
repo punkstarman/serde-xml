@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use serde::de::{DeserializeOwned, Visitor};
+use serde::de::{Expected, DeserializeOwned, Visitor};
 
 use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, ParserConfig, XmlEvent};
@@ -296,6 +296,7 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
         V: Visitor<'de>,
     {
         debug!("Map");
+        trace!("visitor expecting {}", (&visitor as &Expected));
         if self.root {
             self.root = false;
             self.start_document()?;

@@ -16,6 +16,8 @@ extern crate indoc;
 #[cfg(test)]
 extern crate env_logger;
 
+pub mod decoration;
+
 mod de;
 mod error;
 mod ser;
