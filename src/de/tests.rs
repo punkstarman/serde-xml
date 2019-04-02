@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub use super::from_str;
 
-pub use ::tests::setup_logger;
+pub use crate::tests::setup_logger;
 
 fn setup() {
     setup_logger();

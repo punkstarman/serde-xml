@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use super::Deserializer;
-use super::super::error::{self, Error, Result};
+use crate::error::{self, Error, Result};
 
 pub struct TupleAccess {
     items: ::std::vec::IntoIter<String>,

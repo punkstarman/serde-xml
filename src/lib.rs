@@ -20,9 +20,9 @@ mod de;
 mod error;
 mod ser;
 
-pub use de::{from_str, from_reader, Deserializer};
-pub use error::{Error, Result};
-pub use ser::{to_string, to_writer, Serializer};
+pub use self::de::{from_str, from_reader, Deserializer};
+pub use self::error::{Error, Result};
+pub use self::ser::{to_string, to_writer, Serializer};
 
 #[cfg(test)]
 mod tests;
