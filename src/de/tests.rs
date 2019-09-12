@@ -673,3 +673,122 @@ mod attribute {
         assert_eq!(expected, actual);
     }
 }
+
+mod any {
+    use super::*;
+
+    use std::fmt;
+
+    use serde::Deserializer as SerdeDeserializer;
+    use serde::de::{Deserialize, MapAccess, SeqAccess, Visitor};
+    use crate::Deserializer;
+
+    #[derive(Debug, PartialEq, Deserialize)]
+    struct Value {
+        content: String,
+    }
+
+    impl fmt::Display for Value {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Value {}", self.content)
+        }
+    }
+
+    impl Value {
+        fn new(content: String) -> Self {
+            Value { content }
+        }
+    }
+
+    #[test]
+    fn one_element() {
+        setup();
+
+        let input = r#"<document>abc</document>"#;
+        let mut d = Deserializer::new_from_reader(input.as_bytes()).unwrap();
+
+        struct TestVisitor;
+
+        impl<'de> Visitor<'de> for TestVisitor {
+            type Value = Value;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("any valid value")
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<Value, E> {
+                Ok(Value::new(value.to_string()))
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Value, E> {
+                Ok(Value::new(value.to_string()))
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Value, E> {
+                Ok(Value::new(value.to_string()))
+            }
+
+            fn visit_f64<E>(self, value: f64) -> Result<Value, E> {
+                Ok(Value::new(value.to_string()))
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.visit_string(String::from(value))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Value, E> {
+                Ok(Value::new(value))
+            }
+
+            fn visit_none<E>(self) -> Result<Value, E> {
+                Ok(Value::new(String::from("null")))
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Value, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                Deserialize::deserialize(deserializer)
+            }
+
+            fn visit_unit<E>(self) -> Result<Value, E> {
+                Ok(Value::new(String::from("()")))
+            }
+
+            fn visit_seq<V>(self, mut visitor: V) -> Result<Value, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let mut vec = Vec::new();
+
+                while let Some(elem) = try!(visitor.next_element()) {
+                    vec.push(elem);
+                }
+
+                Ok(Value::new(vec.iter().map(|x: &Value| x.to_string()).collect::<Vec<_>>().join(", ")))
+            }
+
+            fn visit_map<V>(self, mut visitor: V) -> Result<Value, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut map = HashMap::new();
+
+                while let Some((k, v)) = try!(visitor.next_entry()) {
+                    map.insert(k, v);
+                }
+
+                Ok(Value::new(map.iter()
+                    .map(|(k, v): (&String, &Value)| { format!("{}: {}", k, v) })
+                    .collect::<Vec<_>>().join(", ")))
+            }
+        }
+
+        let actual: Value = d.deserialize_any(TestVisitor).unwrap();
+
+        assert_eq!("abc", actual.content);
+    }
+}

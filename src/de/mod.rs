@@ -96,6 +96,12 @@ impl<R: Read> Deserializer<R> {
         Ok(())
     }
 
+    fn put_attributes(&mut self, attributes: Vec<OwnedAttribute>) {
+        if !attributes.is_empty() {
+            self.attributes = Some(attributes);
+        }
+    }
+
     fn take_attributes(&mut self) -> Vec<OwnedAttribute> {
         self.attributes.take().unwrap_or(vec![])
     }
@@ -153,9 +159,28 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     where
         V: Visitor<'de>,
     {
-        match *self.peek()? {
-            XmlEvent::StartElement { .. } => self.deserialize_map(visitor),
-            _ => self.deserialize_string(visitor),
+        if self.root {
+            trace!("Root");
+            self.root = false;
+            self.start_document()?;
+            let (tag_name, attributes) = self.start_tag()?;
+
+            self.put_attributes(attributes);
+
+            let v = self.deserialize_any(visitor)?;
+
+            let _ = self.end_tag(&tag_name);
+            self.end_document()?;
+            Ok(v)
+        } else {
+            match *self.peek()? {
+                XmlEvent::StartElement { .. } => self.deserialize_map(visitor),
+                _ => if self.attributes.is_some() {
+                    self.deserialize_map(visitor)
+                } else {
+                    self.deserialize_string(visitor)
+                },
+            }
         }
     }
 
