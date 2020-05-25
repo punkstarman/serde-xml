@@ -103,7 +103,7 @@ impl<W: Write> Serializer<W> {
 
     fn build_start_tag(&mut self) -> Result<bool> {
         lazy_static! {
-            static ref TAG_RE: Regex = Regex::new(r#"((?P<ns>.*):)?(?P<local>[^:]*)"#).unwrap();
+            static ref TAG_RE: Regex = Regex::new(r#"(\{(?P<ns>.*)\})?(?P<local>[^:]*)"#).unwrap();
         }
 
         if let Some(attrs) = self.current_tag_attrs.take() {

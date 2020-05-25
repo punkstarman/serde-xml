@@ -5,13 +5,15 @@ use serde::de::{
     IntoDeserializer,
 };
 
+use xml::name::OwnedName;
+
 use super::Deserializer;
 use super::super::error::{self, Error, Result};
 
 
 pub struct VariantAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
-    tag_name: String,
+    tag_name: OwnedName,
 }
 
 impl<'a, R: 'a + Read> VariantAccess<'a, R> {
@@ -30,7 +32,11 @@ impl<'de, 'a, R: 'a + Read> serde::de::EnumAccess<'de> for VariantAccess<'a, R> 
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let v = seed.deserialize(self.tag_name.clone().into_deserializer())?;
+        let qualified_tag = format!("{}{}",
+            self.tag_name.namespace.as_ref().map(|ns| format!("{{{}}}", ns)).unwrap_or("".to_owned()),
+            self.tag_name.local_name.clone()
+        );
+        let v = seed.deserialize(qualified_tag.into_deserializer())?;
         Ok((v, self))
     }
 }

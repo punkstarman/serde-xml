@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
 use super::Deserializer;
@@ -7,7 +8,7 @@ use super::super::error::{self, Error, Result};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
-    tag_name: String,
+    tag_name: OwnedName,
     first: bool,
 }
 
@@ -21,7 +22,7 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
 
 impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
     type Error = Error;
-    
+
     fn next_element_seed<T: serde::de::DeserializeSeed<'de>>(
         &mut self,
         seed: T,
@@ -33,7 +34,7 @@ impl<'de, 'a, R: 'a + Read> serde::de::SeqAccess<'de> for SeqAccess<'a, R> {
         } else {
             self.de.end_tag(&self.tag_name)?;
             match self.de.peek()?.clone() {
-                XmlEvent::StartElement { ref name, .. } if name.local_name == self.tag_name => {
+                XmlEvent::StartElement { ref name, .. } if name == &self.tag_name => {
                     self.de.start_tag()?;
                     let v = seed.deserialize(&mut *self.de)?;
                     Ok(Some(v))

@@ -676,8 +676,9 @@ mod ns {
         setup();
 
         #[derive(Debug, PartialEq, Serialize)]
-        #[serde(rename = "urn:example:document:document", rename_all = "kebab-case")]
+        #[serde(rename = "{urn:example:document}document", rename_all = "kebab-case")]
         struct Document {
+            #[serde(rename = "{urn:example:document}content")]
             content: String,
         }
 
@@ -703,7 +704,7 @@ mod ns {
         #[derive(Debug, PartialEq, Serialize)]
         #[serde(rename = "document", rename_all = "kebab-case")]
         struct Document {
-            #[serde(rename = "urn:example:document:content")]
+            #[serde(rename = "{urn:example:document}content")]
             content: String,
         }
 

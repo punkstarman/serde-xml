@@ -2,6 +2,7 @@ use std::io::Read;
 
 use serde::de::{DeserializeOwned, Visitor};
 
+use xml::name::OwnedName;
 use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, ParserConfig, XmlEvent};
 
@@ -33,7 +34,7 @@ pub struct Deserializer<R: Read> {
     reader: EventReader<R>,
     root: bool,
     lookahead: Option<XmlEvent>,
-    tag_name: Option<String>,
+    tag_name: Option<OwnedName>,
     attributes: Option<Vec<OwnedAttribute>>,
 }
 
@@ -87,7 +88,7 @@ impl<R: Read> Deserializer<R> {
         }
     }
 
-    fn current_tag(&self) -> Option<String> {
+    fn current_tag(&self) -> Option<OwnedName> {
         self.tag_name.as_ref().cloned()
     }
 
@@ -120,16 +121,16 @@ impl<R: Read> Deserializer<R> {
         }
     }
 
-    fn start_tag(&mut self) -> Result<(String, Vec<OwnedAttribute>)> {
+    fn start_tag(&mut self) -> Result<(OwnedName, Vec<OwnedAttribute>)> {
         match self.next()? {
-            XmlEvent::StartElement { name, attributes, .. } => Ok((name.local_name, attributes)),
+            XmlEvent::StartElement { name, attributes, .. } => Ok((name, attributes)),
             _ => Err(error::with_message("expecting start tag".to_string())),
         }
     }
 
-    fn end_tag(&mut self, tag_name: &str) -> Result<()> {
+    fn end_tag(&mut self, tag_name: &OwnedName) -> Result<()> {
         match self.next()? {
-            XmlEvent::EndElement { ref name } if name.to_string() == tag_name => Ok(()),
+            XmlEvent::EndElement { ref name } if name == tag_name => Ok(()),
             _ => Err(error::with_message("expecting end tag".to_string())),
         }
     }

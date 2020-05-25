@@ -2,6 +2,7 @@ use std::io::Read;
 
 use serde::de::IntoDeserializer;
 
+use xml::name::OwnedName;
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
 
@@ -13,7 +14,7 @@ pub struct MapAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
     attributes: std::vec::IntoIter<OwnedAttribute>,
     value: Option<String>,
-    end_tag: Option<String>,
+    end_tag: Option<OwnedName>,
 }
 
 impl<'a, R: 'a + Read> MapAccess<'a, R> {
@@ -48,9 +49,14 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
                     let (tag_name, attributes) = self.de.start_tag()?;
                     self.de.tag_name = Some(tag_name.clone());
                     self.de.put_attributes(attributes);
-                    trace!("found subtag {}", tag_name);
                     self.end_tag = Some(tag_name.clone());
-                    seed.deserialize(tag_name.into_deserializer()).map(Some)
+
+                    let qualified_tag = format!("{}{}",
+                        tag_name.namespace.map(|ns| format!("{{{}}}", ns)).unwrap_or("".to_owned()),
+                        tag_name.local_name.clone()
+                    );
+                    trace!("found subtag {}", qualified_tag);
+                    seed.deserialize(qualified_tag.into_deserializer()).map(Some)
                 },
                 _ => Err(error::with_message(format!("expected map key, found {:?}", self.de.next()?))),
             },
