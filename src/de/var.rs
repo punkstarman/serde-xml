@@ -2,13 +2,13 @@ use std::io::Read;
 
 use serde::de::{
     Deserializer as SerdeDeserializer,
-    IntoDeserializer,
+    IntoDeserializer
 };
 
 use xml::name::OwnedName;
 
-use super::Deserializer;
-use super::super::error::{self, Error, Result};
+use super::{Deserializer, qualified_tag_from};
+use crate::error::{self, Error, Result};
 
 
 pub struct VariantAccess<'a, R: 'a + Read> {
@@ -32,10 +32,7 @@ impl<'de, 'a, R: 'a + Read> serde::de::EnumAccess<'de> for VariantAccess<'a, R> 
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let qualified_tag = format!("{}{}",
-            self.tag_name.namespace.as_ref().map(|ns| format!("{{{}}}", ns)).unwrap_or("".to_owned()),
-            self.tag_name.local_name.clone()
-        );
+        let qualified_tag = qualified_tag_from(&self.tag_name);
         let v = seed.deserialize(qualified_tag.into_deserializer())?;
         Ok((v, self))
     }

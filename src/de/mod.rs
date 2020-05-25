@@ -373,5 +373,12 @@ impl<'de, 'r, R: Read> serde::de::Deserializer<'de> for &'r mut Deserializer<R> 
     }
 }
 
+fn qualified_tag_from(tag_name: &OwnedName) -> String {
+    format!("{}{}",
+        tag_name.namespace.as_ref().map(|ns| format!("{{{}}}", ns)).unwrap_or("".to_owned()),
+        tag_name.local_name.clone()
+    )
+}
+
 #[cfg(test)]
 mod tests;

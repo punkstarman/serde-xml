@@ -6,7 +6,7 @@ use xml::name::OwnedName;
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
 
-use super::Deserializer;
+use super::{Deserializer, qualified_tag_from};
 use super::plain::PlainStringDeserializer;
 use super::super::error::{self, Error, Result};
 
@@ -51,10 +51,7 @@ impl<'a, 'de, R: 'a + Read> serde::de::MapAccess<'de> for MapAccess<'a, R> {
                     self.de.put_attributes(attributes);
                     self.end_tag = Some(tag_name.clone());
 
-                    let qualified_tag = format!("{}{}",
-                        tag_name.namespace.map(|ns| format!("{{{}}}", ns)).unwrap_or("".to_owned()),
-                        tag_name.local_name.clone()
-                    );
+                    let qualified_tag = qualified_tag_from(&tag_name);
                     trace!("found subtag {}", qualified_tag);
                     seed.deserialize(qualified_tag.into_deserializer()).map(Some)
                 },
