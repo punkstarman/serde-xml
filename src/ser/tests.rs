@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub use super::to_string;
+pub use super::{to_string, to_string_ns};
 
 pub use crate::tests::setup_logger;
 
@@ -676,9 +676,9 @@ mod ns {
         setup();
 
         #[derive(Debug, PartialEq, Serialize)]
-        #[serde(rename = "{urn:example:document}document", rename_all = "kebab-case")]
+        #[serde(rename = "document", rename_all = "kebab-case")]
         struct Document {
-            #[serde(rename = "{urn:example:document}content")]
+            #[serde(rename = "content")]
             content: String,
         }
 
@@ -692,7 +692,7 @@ mod ns {
               <content>abc 123</content>
             </document>"#);
 
-        let actual = to_string(&input).unwrap();
+        let actual = to_string_ns(&input, Some("urn:example:document"), &[]).unwrap();
 
         assert_eq!(expected, actual);
     }
@@ -704,7 +704,7 @@ mod ns {
         #[derive(Debug, PartialEq, Serialize)]
         #[serde(rename = "document", rename_all = "kebab-case")]
         struct Document {
-            #[serde(rename = "{urn:example:document}content")]
+            #[serde(rename = "content:content")]
             content: String,
         }
 
@@ -714,11 +714,35 @@ mod ns {
 
         let expected = indoc!(r#"
             <?xml version="1.0" encoding="UTF-8"?>
-            <document>
-              <content xmlns="urn:example:document">abc 123</content>
+            <document xmlns:content="urn:example:content">
+              <content:content>abc 123</content:content>
             </document>"#);
 
-        let actual = to_string(&input).unwrap();
+        let actual = to_string_ns(&input, None, &[("content", "urn:example:content")]).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn attribute() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "@content:content")]
+            content: String,
+        }
+
+        let input = Document {
+            content: "abc 123".into(),
+        };
+
+        let expected = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns:content="urn:example:content" content:content="abc 123" />"#);
+
+        let actual = to_string_ns(&input, None, &[("content", "urn:example:content")]).unwrap();
 
         assert_eq!(expected, actual);
     }

@@ -801,9 +801,9 @@ mod ns {
         setup();
 
         #[derive(Debug, PartialEq, Deserialize)]
-        #[serde(rename = "{urn:example:document}document", rename_all = "kebab-case")]
+        #[serde(rename = "document", rename_all = "kebab-case")]
         struct Document {
-            #[serde(rename = "{urn:example:document}content")]
+            #[serde(rename = "content")]
             content: String,
         }
 
@@ -829,7 +829,7 @@ mod ns {
         #[derive(Debug, PartialEq, Deserialize)]
         #[serde(rename = "document", rename_all = "kebab-case")]
         struct Document {
-            #[serde(rename = "{urn:example:document}content")]
+            #[serde(rename = "content:content")]
             content: String,
         }
 
@@ -839,8 +839,33 @@ mod ns {
 
         let input = indoc!(r#"
             <?xml version="1.0" encoding="UTF-8"?>
-            <document>
-              <content xmlns="urn:example:document">abc 123</content>
+            <document xmlns:content="urn:example:content">
+              <content:content>abc 123</content:content>
+            </document>"#);
+
+        let actual = from_str(input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn attribute() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "@content:content")]
+            content: String,
+        }
+
+        let expected = Document {
+            content: "abc 123".into(),
+        };
+
+        let input = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns:content="urn:example:content" content:content="abc 123">
             </document>"#);
 
         let actual = from_str(input).unwrap();
