@@ -19,15 +19,28 @@ use self::seq::SeqSeralizer;
 use self::tuple::TupleSerializer;
 
 pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
+    to_string_ns(value, None, &[])
+}
+
+pub fn to_string_ns<S: Serialize>(
+    value: &S, default_ns: Option<&str>, namespaces: &[(&str, &str)]
+) -> Result<String>
+{
     let mut writer = Vec::with_capacity(128);
-    to_writer(&mut writer, value)?;
+    to_writer_ns(&mut writer, value, default_ns, namespaces)?;
 
     let string = String::from_utf8(writer).map_err(error::from_utf8)?;
     Ok(string)
 }
 
 pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
-    let mut ser = Serializer::new(writer);
+    to_writer_ns(writer, value, None, &[])
+}
+
+pub fn to_writer_ns<W: Write, S: Serialize>(
+    writer: W, value: &S, default_ns: Option<&str>, namespaces: &[(&str, &str)]
+) -> Result<()> {
+    let mut ser = Serializer::new(writer, default_ns, namespaces);
     value.serialize(&mut ser)
 }
 
@@ -35,20 +48,34 @@ pub struct Serializer<W>
 where W: Write {
     writer: EventWriter<W>,
     root: bool,
+    default_ns: Option<String>,
+    namespaces: Vec<(String, String)>,
     current_tag: String,
     current_tag_attrs: Option<HashMap<&'static str, String>>,
 }
 
 impl<W: Write> Serializer<W> {
-    fn new_from_writer(writer: EventWriter<W>) -> Self {
-        Self { writer, root: true, current_tag: "".into(), current_tag_attrs: None }
+    fn new_from_writer(
+        writer: EventWriter<W>, default_ns: Option<&str>, namespaces: &[(&str, &str)]
+    ) -> Self {
+        let namespaces = namespaces.into_iter()
+            .map(|(prefix, uri)| (prefix.to_string(), uri.to_string()))
+            .collect();
+        Self {
+            writer,
+            root: true,
+            default_ns: default_ns.map(|s| s.to_string()),
+            namespaces,
+            current_tag: "".into(),
+            current_tag_attrs: None,
+        }
     }
 
-    pub fn new(writer: W) -> Self {
+    pub fn new(writer: W, default_ns: Option<&str>, namespaces: &[(&str, &str)]) -> Self {
         Self::new_from_writer(
             EmitterConfig::new()
             .perform_indent(true)
-            .create_writer(writer))
+            .create_writer(writer), default_ns, namespaces)
     }
 
     fn next(&mut self, event: XmlEvent) -> Result<()> {
@@ -102,17 +129,8 @@ impl<W: Write> Serializer<W> {
     }
 
     fn build_start_tag(&mut self) -> Result<bool> {
-        lazy_static! {
-            static ref TAG_RE: Regex = Regex::new(r#"(\{(?P<ns>.*)\})?(?P<local>[^:]*)"#).unwrap();
-        }
-
         if let Some(attrs) = self.current_tag_attrs.take() {
-            let current_tag = self.current_tag();
-            let captures = TAG_RE.captures(&current_tag).unwrap();
-
-            let default_ns = captures.name("ns").map(|m| m.as_str());
-            let tag = captures.name("local").unwrap().as_str();
-            self.start_tag(tag, attrs, default_ns)?;
+            self.start_tag(&self.current_tag(), attrs)?;
             Ok(true)
         } else {
             Ok(false)
@@ -122,15 +140,18 @@ impl<W: Write> Serializer<W> {
     fn start_tag(
         &mut self,
         tag_name: &str,
-        attrs: HashMap<&str, String>,
-        default_ns: Option<&str>) -> Result<()>
+        attrs: HashMap<&str, String>
+    ) -> Result<()>
     {
         let mut element = attrs.iter().fold(
             XmlEvent::start_element(tag_name),
             |b, (&name, value)| b.attr(name, value));
 
-        if default_ns.is_some() {
-            element = element.default_ns(default_ns.unwrap());
+        if let Some(default_ns) = self.default_ns.take() {
+            element = element.default_ns(default_ns);
+        }
+        for ns in self.namespaces.drain(..) {
+            element = element.ns(ns.0, ns.1)
         }
 
         self.next(element.into())
@@ -361,7 +382,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 	{
         trace!("Tuple variant {}::{}", name, variant);
         let must_close_tag = self.build_start_tag()?;
-        self.start_tag(variant, HashMap::new(), None)?;
+        self.start_tag(variant, HashMap::new())?;
         Ok(TupleSerializer::new(self, must_close_tag))
 	}
 
