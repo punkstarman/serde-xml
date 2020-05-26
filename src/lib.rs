@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate log;
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate serde;
 
 extern crate xml;
@@ -17,8 +15,6 @@ extern crate indoc;
 
 #[cfg(test)]
 extern crate env_logger;
-
-extern crate regex;
 
 mod de;
 mod error;

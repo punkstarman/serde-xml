@@ -6,8 +6,6 @@ mod tuple;
 use std::collections::HashMap;
 use std::io::Write;
 
-use regex::Regex;
-
 use serde::ser::Serialize;
 
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};

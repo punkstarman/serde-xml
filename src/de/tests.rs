@@ -764,7 +764,7 @@ mod any {
             {
                 let mut vec = Vec::new();
 
-                while let Some(elem) = try!(visitor.next_element()) {
+                while let Some(elem) = visitor.next_element()? {
                     vec.push(elem);
                 }
 
@@ -777,7 +777,7 @@ mod any {
             {
                 let mut map = HashMap::new();
 
-                while let Some((k, v)) = try!(visitor.next_entry()) {
+                while let Some((k, v)) = visitor.next_entry()? {
                     map.insert(k, v);
                 }
 
