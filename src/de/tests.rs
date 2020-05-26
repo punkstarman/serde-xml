@@ -764,7 +764,7 @@ mod any {
             {
                 let mut vec = Vec::new();
 
-                while let Some(elem) = try!(visitor.next_element()) {
+                while let Some(elem) = visitor.next_element()? {
                     vec.push(elem);
                 }
 
@@ -777,7 +777,7 @@ mod any {
             {
                 let mut map = HashMap::new();
 
-                while let Some((k, v)) = try!(visitor.next_entry()) {
+                while let Some((k, v)) = visitor.next_entry()? {
                     map.insert(k, v);
                 }
 
@@ -790,5 +790,86 @@ mod any {
         let actual: Value = d.deserialize_any(TestVisitor).unwrap();
 
         assert_eq!("abc", actual.content);
+    }
+}
+
+mod ns {
+    use super::*;
+
+    #[test]
+    fn root() {
+        setup();
+
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "content")]
+            content: String,
+        }
+
+        let expected = Document {
+            content: "abc 123".into(),
+        };
+
+        let input = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns="urn:example:document">
+              <content>abc 123</content>
+            </document>"#);
+
+        let actual: Document = from_str(input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn inner_node() {
+        setup();
+
+        #[derive(Debug, PartialEq, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "content:content")]
+            content: String,
+        }
+
+        let expected = Document {
+            content: "abc 123".into(),
+        };
+
+        let input = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns:content="urn:example:content">
+              <content:content>abc 123</content:content>
+            </document>"#);
+
+        let actual = from_str(input).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn attribute() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "@content:content")]
+            content: String,
+        }
+
+        let expected = Document {
+            content: "abc 123".into(),
+        };
+
+        let input = indoc!(r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document xmlns:content="urn:example:content" content:content="abc 123">
+            </document>"#);
+
+        let actual = from_str(input).unwrap();
+
+        assert_eq!(expected, actual);
     }
 }

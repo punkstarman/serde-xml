@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 pub use serde::{Serialize, Deserialize};
 
-pub use ::ser::to_string;
+pub use ::ser::{to_string, to_string_ns};
 pub use ::de::from_str;
 
 pub use super::setup_logger;
@@ -17,6 +17,17 @@ where
     T: Debug + PartialEq + Serialize + for<'de> Deserialize<'de>
 {
     let actual_repr = to_string(object).unwrap();
+    debug!("actual: {}", actual_repr);
+    let actual: T = from_str(&actual_repr).unwrap();
+
+    assert_eq!(object, &actual);
+}
+
+fn round_trip_ns<T>(object: &T, default_ns: Option<&str>, namespaces: &[(&str, &str)]) -> ()
+where
+    T: Debug + PartialEq + Serialize + for<'de> Deserialize<'de>
+{
+    let actual_repr = to_string_ns(object, default_ns, namespaces).unwrap();
     debug!("actual: {}", actual_repr);
     let actual: T = from_str(&actual_repr).unwrap();
 
@@ -503,5 +514,63 @@ mod attribute {
         };
 
         round_trip(&object);
+    }
+}
+
+mod ns {
+    use super::*;
+
+    #[test]
+    fn root() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "content")]
+            content: String,
+        }
+
+        let object = Document {
+            content: "abc 123".into(),
+        };
+
+        round_trip_ns(&object, Some("urn:example:document"), &[]);
+    }
+
+    #[test]
+    fn inner_node() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "content:content")]
+            content: String,
+        }
+
+        let object = Document {
+            content: "abc 123".into(),
+        };
+
+        round_trip_ns(&object, None, &[("content", "urn:example:content")]);
+    }
+
+    #[test]
+    fn attribute() {
+        setup();
+
+        #[derive(Debug, PartialEq, Serialize, Deserialize)]
+        #[serde(rename = "document", rename_all = "kebab-case")]
+        struct Document {
+            #[serde(rename = "@content:content")]
+            content: String,
+        }
+
+        let object = Document {
+            content: "abc 123".into(),
+        };
+
+        round_trip_ns(&object, None, &[("content", "urn:example:content")]);
     }
 }

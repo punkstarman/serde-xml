@@ -19,7 +19,7 @@ fn from_str() {
 #[test]
 fn from_reader() {
     let s = "<document><content>abc</content></document>";
-    let reader: Box<std::io::Read> = Box::new(s.as_bytes());
+    let reader: Box<dyn std::io::Read> = Box::new(s.as_bytes());
     let _document: Document = serde_xml::from_reader(reader).unwrap();
 }
 
