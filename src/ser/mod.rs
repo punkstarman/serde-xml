@@ -50,11 +50,12 @@ where W: Write {
     namespaces: Vec<(String, String)>,
     current_tag: String,
     current_tag_attrs: Option<HashMap<&'static str, String>>,
+    open_document: bool,
 }
 
 impl<W: Write> Serializer<W> {
-    fn new_from_writer(
-        writer: EventWriter<W>, default_ns: Option<&str>, namespaces: &[(&str, &str)]
+    pub fn new_from_writer(
+        writer: EventWriter<W>, default_ns: Option<&str>, namespaces: &[(&str, &str)], open_document: bool
     ) -> Self {
         let namespaces = namespaces.into_iter()
             .map(|(prefix, uri)| (prefix.to_string(), uri.to_string()))
@@ -66,6 +67,7 @@ impl<W: Write> Serializer<W> {
             namespaces,
             current_tag: "".into(),
             current_tag_attrs: None,
+            open_document: open_document,
         }
     }
 
@@ -73,7 +75,7 @@ impl<W: Write> Serializer<W> {
         Self::new_from_writer(
             EmitterConfig::new()
             .perform_indent(true)
-            .create_writer(writer), default_ns, namespaces)
+            .create_writer(writer), default_ns, namespaces, true)
     }
 
     fn next(&mut self, event: XmlEvent) -> Result<()> {
@@ -95,7 +97,9 @@ impl<W: Write> Serializer<W> {
     fn open_root_tag(&mut self, name: &'static str) -> Result<()> {
         if self.root {
             self.root = false;
-            self.start_document()?;
+            if self.open_document {
+                self.start_document()?;
+            }
             self.open_tag(name)?;
         }
         Ok(())

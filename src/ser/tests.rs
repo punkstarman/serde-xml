@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-pub use super::{to_string, to_string_ns};
+pub use super::{to_string, to_string_ns, Serializer};
+use xml::writer::{EmitterConfig, XmlEvent};
+use super::error;
+use serde::ser::Serialize;
 
 pub use crate::tests::setup_logger;
 
@@ -30,6 +33,53 @@ fn one_element() {
 
     assert_eq!(expected, actual);
 }
+
+
+#[test]
+fn test_custom_header() {
+    setup();
+
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "OFX", rename_all = "UPPERCASE")]
+    struct Ofx {
+        signon: String,
+    }
+
+    let input = Ofx { signon: "plain text".to_string() };
+
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <?OFX VERSION="203"?>
+        <OFX>
+          <SIGNON>plain text</SIGNON>
+        </OFX>"#);
+
+    let mut buf = Vec::with_capacity(128);
+    {
+        let mut writer = EmitterConfig::new()
+            .perform_indent(true)
+            .create_writer(&mut buf);
+        
+        writer.write(XmlEvent::StartDocument {
+            encoding: Default::default(),
+            standalone: Default::default(),
+            version: xml::common::XmlVersion::Version10
+        }).unwrap();
+
+        writer.write(XmlEvent::processing_instruction("OFX",
+           Some("VERSION=\"203\"")
+        )).unwrap();
+
+        let mut ser = Serializer::new_from_writer(writer, None, &[], false);
+        input.serialize(&mut ser).unwrap();
+    }
+   
+
+    let actual = String::from_utf8(buf).map_err(error::from_utf8).unwrap();
+
+    assert_eq!(expected, actual);
+}
+
 
 #[test]
 fn nested_elements() {
