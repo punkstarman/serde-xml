@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-pub use super::{to_string, to_string_ns};
+pub use super::{to_string, to_string_ns, Serializer};
+use xml::writer::{EmitterConfig, XmlEvent};
+use super::error;
+use serde::ser::Serialize;
 
 pub use crate::tests::setup_logger;
 
@@ -21,7 +24,7 @@ fn one_element() {
     let input = Document { value: "plain text".to_string() };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <value>plain text</value>
         </document>"#);
@@ -30,6 +33,53 @@ fn one_element() {
 
     assert_eq!(expected, actual);
 }
+
+
+#[test]
+fn test_custom_header() {
+    setup();
+
+    #[derive(Debug, PartialEq, Serialize)]
+    #[serde(rename = "OFX", rename_all = "UPPERCASE")]
+    struct Ofx {
+        signon: String,
+    }
+
+    let input = Ofx { signon: "plain text".to_string() };
+
+    let expected = indoc!(r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <?OFX VERSION="203"?>
+        <OFX>
+          <SIGNON>plain text</SIGNON>
+        </OFX>"#);
+
+    let mut buf = Vec::with_capacity(128);
+    {
+        let mut writer = EmitterConfig::new()
+            .perform_indent(true)
+            .create_writer(&mut buf);
+
+        writer.write(XmlEvent::StartDocument {
+            encoding: Default::default(),
+            standalone: Default::default(),
+            version: xml::common::XmlVersion::Version10
+        }).unwrap();
+
+        writer.write(XmlEvent::processing_instruction("OFX",
+           Some("VERSION=\"203\"")
+        )).unwrap();
+
+        let mut ser = Serializer::new_from_writer(writer, None, &[]);
+        input.serialize(&mut ser).unwrap();
+    }
+
+
+    let actual = String::from_utf8(buf).map_err(error::from_utf8).unwrap();
+
+    assert_eq!(expected, actual);
+}
+
 
 #[test]
 fn nested_elements() {
@@ -49,7 +99,7 @@ fn nested_elements() {
     let input = Document { inner: InnerElement { value: "plain text".to_string() } };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <inner>
             <value>plain text</value>
@@ -78,7 +128,7 @@ fn multiple_elements() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <first>plain text</first>
           <second>more text</second>
@@ -107,7 +157,7 @@ fn map() {
     };
 
     let expected1 = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>
             <first.key>plain text</first.key>
@@ -116,7 +166,7 @@ fn map() {
         </document>"#);
 
     let expected2 = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>
             <second-key>more text</second-key>
@@ -147,7 +197,7 @@ fn sequence() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <item>first</item>
           <item>second</item>
@@ -181,7 +231,7 @@ fn unit_variant() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>a</content>
         </document>"#);
@@ -227,7 +277,7 @@ fn struct_variant() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>
             <trump>
@@ -265,7 +315,7 @@ fn newtype_variant() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>
             <i>42</i>
@@ -302,7 +352,7 @@ fn tuple_variant() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>
             <kv>abc 123</kv>
@@ -333,7 +383,7 @@ fn tuple_struct() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>abc 123</content>
         </document>"#);
@@ -358,7 +408,7 @@ fn tuple() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>123 1.23 abc</content>
         </document>"#);
@@ -383,7 +433,7 @@ fn types_unit() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content />
         </document>"#);
@@ -412,7 +462,7 @@ fn unit_struct() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content />
         </document>"#);
@@ -441,7 +491,7 @@ fn newtype_struct() {
     };
 
     let expected = indoc!(r#"
-        <?xml version="1.0" encoding="UTF-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <document>
           <content>abc</content>
         </document>"#);
@@ -469,7 +519,7 @@ mod option {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document>
               <content />
             </document>"#);
@@ -488,7 +538,7 @@ mod option {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document>
               <content>123</content>
             </document>"#);
@@ -524,7 +574,7 @@ mod attribute {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document>
               <content id="123" />
             </document>"#);
@@ -561,12 +611,12 @@ mod attribute {
         };
 
         let expected1 = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document>
               <content x="20" y="40" />
             </document>"#);
         let expected2 = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document>
               <content y="40" x="20" />
             </document>"#);
@@ -594,7 +644,7 @@ mod attribute {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document version="1.2.3" />"#);
 
         let actual = to_string(&input).unwrap();
@@ -620,7 +670,7 @@ mod attribute {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document version="1.2.3">
               <content>abc</content>
             </document>"#);
@@ -657,7 +707,7 @@ mod attribute {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document>
               <content id="123">abc</content>
             </document>"#);
@@ -687,7 +737,7 @@ mod ns {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document xmlns="urn:example:document">
               <content>abc 123</content>
             </document>"#);
@@ -713,7 +763,7 @@ mod ns {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document xmlns:content="urn:example:content">
               <content:content>abc 123</content:content>
             </document>"#);
@@ -739,7 +789,7 @@ mod ns {
         };
 
         let expected = indoc!(r#"
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml version="1.0" encoding="utf-8"?>
             <document xmlns:content="urn:example:content" content:content="abc 123" />"#);
 
         let actual = to_string_ns(&input, None, &[("content", "urn:example:content")]).unwrap();
